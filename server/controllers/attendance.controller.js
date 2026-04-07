@@ -4,6 +4,69 @@ import { Batch } from "../models/batch.model.js";
 import { Student } from "../models/student.model.js";
 import { Tutor } from "../models/tutor.model.js";
 
+const buildStudentAttendancePayload = async (studentId, tenantId) => {
+  const student = await Student.findOne({ _id: studentId, tenantId }).populate({
+    path: "userId",
+    select: "name email",
+  });
+
+  if (!student) {
+    return { notFound: true };
+  }
+
+  const attendance = await Attendance.find({ studentId, tenantId })
+    .populate({
+      path: "classId",
+      select: "date startTime duration subject topic status",
+      populate: [
+        {
+          path: "subjectId",
+          select: "name",
+        },
+        {
+          path: "teacherId",
+          populate: { path: "userId", select: "name" },
+        },
+      ],
+    })
+    .sort({ createdAt: -1 });
+
+  const presentCount = attendance.filter((record) => record.present).length;
+  const totalClasses = attendance.length;
+  const attendancePercentage =
+    totalClasses > 0 ? (presentCount / totalClasses) * 100 : 0;
+
+  const attendanceRecords = attendance
+    .filter((record) => record.classId)
+    .map((record) => ({
+      _id: record._id,
+      classId: record.classId._id,
+      classDate: record.classId.date,
+      classTime: record.classId.startTime,
+      subject: record.classId.subjectId?.name,
+      topic: record.classId.topic,
+      tutorName: record.classId.teacherId?.userId?.name,
+      present: record.present,
+      markedAt: record.markedAt,
+      notes: record.notes,
+    }));
+
+  return {
+    student: {
+      _id: student._id,
+      name: student.userId.name,
+      email: student.userId.email,
+    },
+    statistics: {
+      totalClasses,
+      presentCount,
+      absentCount: totalClasses - presentCount,
+      attendancePercentage: attendancePercentage.toFixed(2),
+    },
+    attendance: attendanceRecords,
+  };
+};
+
 // Mark attendance for multiple students in a class
 export const markAttendance = async (req, res) => {
   try {
@@ -176,67 +239,39 @@ export const getAttendanceByStudent = async (req, res) => {
     const { studentId } = req.params;
     const tenantId = req.user.tenantId;
 
-    // Verify student exists
-    const student = await Student.findOne({ _id: studentId, tenantId }).populate({
-      path: "userId",
-      select: "name email",
-    });
-    if (!student) {
+    const payload = await buildStudentAttendancePayload(studentId, tenantId);
+    if (payload.notFound) {
       return res.status(404).json({ message: "Student not found" });
     }
 
-    // Get attendance records for this student
-    const attendance = await Attendance.find({ studentId, tenantId })
-      .populate({
-        path: "classId",
-        select: "date startTime duration subject topic status",
-        populate: [
-          {
-            path: "subjectId",
-            select: "name",
-          },
-          {
-            path: "teacherId",
-            populate: { path: "userId", select: "name" },
-          },
-        ],
-      })
-      .sort({ createdAt: -1 });
-
-    // Calculate statistics
-    const presentCount = attendance.filter((r) => r.present).length;
-    const totalClasses = attendance.length;
-    const attendancePercentage = totalClasses > 0 ? (presentCount / totalClasses) * 100 : 0;
-
-    const attendanceRecords = attendance.map((record) => ({
-      _id: record._id,
-      classId: record.classId._id,
-      classDate: record.classId.date,
-      classTime: record.classId.startTime,
-      subject: record.classId.subjectId?.name,
-      topic: record.classId.topic,
-      tutorName: record.classId.teacherId?.userId?.name,
-      present: record.present,
-      markedAt: record.markedAt,
-      notes: record.notes,
-    }));
-
-    res.status(200).json({
-      student: {
-        _id: student._id,
-        name: student.userId.name,
-        email: student.userId.email,
-      },
-      statistics: {
-        totalClasses,
-        presentCount,
-        absentCount: totalClasses - presentCount,
-        attendancePercentage: attendancePercentage.toFixed(2),
-      },
-      attendance: attendanceRecords,
-    });
+    res.status(200).json(payload);
   } catch (error) {
     res.status(500).json({
+      message: "Error fetching student attendance",
+      error: error.message,
+    });
+  }
+};
+
+// Get attendance for logged in student
+export const getMyAttendance = async (req, res) => {
+  try {
+    const tenantId = req.user.tenantId;
+    const userId = req.user.id || req.user._id;
+
+    const student = await Student.findOne({ userId, tenantId }).select("_id");
+    if (!student) {
+      return res.status(404).json({ message: "Student profile not found" });
+    }
+
+    const payload = await buildStudentAttendancePayload(student._id, tenantId);
+    if (payload.notFound) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    return res.status(200).json(payload);
+  } catch (error) {
+    return res.status(500).json({
       message: "Error fetching student attendance",
       error: error.message,
     });
@@ -260,11 +295,13 @@ export const getAttendanceSummary = async (req, res) => {
 
     // Get all classes for this batch
     const classes = await Class.find({ batchId, tenantId }).sort({ date: -1 });
+    const classIds = classes.map((cls) => cls._id);
 
     // Get all attendance records for students in this batch
     const studentIds = batch.studentIds.map((s) => s._id);
     const attendance = await Attendance.find({
       studentId: { $in: studentIds },
+      classId: { $in: classIds },
       tenantId,
     });
 

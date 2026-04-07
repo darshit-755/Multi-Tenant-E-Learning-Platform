@@ -1,30 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { getStudentAttendance } from '../../services/attendance.api';
+import { useGetMyAttendance } from '../../hooks/student/useGetMyAttendance';
 
 const StudentAttendance = () => {
   const { user } = useAuth();
-  const [attendanceData, setAttendanceData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const {
+    data: attendanceData,
+    isLoading: loading,
+    isError,
+  } = useGetMyAttendance({ enabled: user?.role === 'student' });
 
-  useEffect(() => {
-    const fetchAttendance = async () => {
-      try {
-        if (user?.studentId) {
-          const response = await getStudentAttendance(user.studentId);
-          setAttendanceData(response);
-        }
-      } catch (err) {
-        setError('Failed to load attendance data. Please try again.');
-        console.error('Error fetching attendance:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAttendance();
-  }, [user?.studentId]);
+  const error = user?.role !== 'student'
+    ? 'Only student accounts can access this page.'
+    : isError
+      ? 'Failed to load attendance data. Please try again.'
+      : '';
 
   if (loading) {
     return (

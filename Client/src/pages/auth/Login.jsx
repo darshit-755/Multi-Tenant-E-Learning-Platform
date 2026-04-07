@@ -2,9 +2,9 @@ import { useForm } from "react-hook-form";
 import { useNavigate, Link } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import { useLogin } from "@/hooks/auth/useAuthMutations";
+import { useGoogleLogin } from "@/hooks/auth/useGoogleLogin";
 import { useAuth } from "@/contexts/AuthContext";
 import { useForgotPassword } from "@/hooks/auth/useForgotPassword";
-import { googleLoginApi } from "@/services/auth.api";
 
 import {
   Dialog,
@@ -40,13 +40,14 @@ export default function Login() {
   } = useForm();
 
   const loginMutation = useLogin();
+  const googleLoginMutation = useGoogleLogin();
   const { login } = useAuth();
 
   const handleGoogleLoginSuccess = async (credentialResponse) => {
     try {
       setIsGoogleLoading(true);
       // console.log("Google Credential Response:", credentialResponse);
-      const response = await googleLoginApi(credentialResponse.credential);
+      const response = await googleLoginMutation.mutateAsync(credentialResponse.credential);
       
       // Check if user needs approval
       if (response?.data?.userStatus === "inactive" || !response?.data?.token) {

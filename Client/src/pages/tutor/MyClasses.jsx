@@ -452,7 +452,7 @@ export default function MyClasses() {
                                 navigate(`/tutor/take-attendance/${cls._id}`)
                               }
                             >
-                              📝 Take
+                              📝 {cls.hasAttendance ? "Update" : "Take"}
                             </Button>
                           </TableCell>
                           <TableCell>

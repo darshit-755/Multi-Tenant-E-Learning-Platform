@@ -1,55 +1,47 @@
-import React, { useState, useEffect } from 'react';
-import { getAttendanceSummary } from '../../services/attendance.api';
-import { getClassesApi } from '../../services/class.api';
+import React, { useMemo, useState } from 'react';
+import { useGetClasses } from '../../hooks/tenant/useGetClasses';
+import { useGetAttendanceSummary } from '../../hooks/tenant/useAttendanceSummary';
+
+const getAttendanceColor = (value) => {
+  const percentage = Number.parseFloat(value) || 0;
+
+  if (percentage <= 40) return '#e74c3c';
+  if (percentage <= 75) return '#f59e0b';
+  return '#27ae60';
+};
 
 const BatchAttendanceReport = () => {
-  const [batches, setBatches] = useState([]);
   const [selectedBatch, setSelectedBatch] = useState('');
-  const [attendanceData, setAttendanceData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const {
+    data: classesData,
+    isLoading: isClassesLoading,
+    isError: isClassesError,
+  } = useGetClasses();
+  const {
+    data: attendanceData,
+    isLoading: isSummaryLoading,
+    isError: isSummaryError,
+  } = useGetAttendanceSummary(selectedBatch, { enabled: Boolean(selectedBatch) });
 
-  useEffect(() => {
-    const fetchBatches = async () => {
-      try {
-        const response = await getClassesApi();
-        // Extract unique batches from classes
-        const uniqueBatches = {};
-        response.data?.classes?.forEach(classItem => {
-          if (classItem.batchId && !uniqueBatches[classItem.batchId._id]) {
-            uniqueBatches[classItem.batchId._id] = classItem.batchId;
-          }
-        });
-        setBatches(Object.values(uniqueBatches));
-      } catch (err) {
-        console.error('Error fetching batches:', err);
+  const batches = useMemo(() => {
+    const uniqueBatches = {};
+    classesData?.classes?.forEach((classItem) => {
+      if (classItem.batchId && !uniqueBatches[classItem.batchId._id]) {
+        uniqueBatches[classItem.batchId._id] = classItem.batchId;
       }
-    };
+    });
 
-    fetchBatches();
-  }, []);
+    return Object.values(uniqueBatches);
+  }, [classesData]);
 
-  const handleBatchChange = async (batchId) => {
+  const handleBatchChange = (batchId) => {
     setSelectedBatch(batchId);
-    
-    if (!batchId) {
-      setAttendanceData(null);
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-
-    try {
-      const response = await getAttendanceSummary(batchId);
-      setAttendanceData(response);
-    } catch (err) {
-      setError('Failed to load attendance data. Please try again.');
-      console.error('Error fetching attendance:', err);
-    } finally {
-      setLoading(false);
-    }
   };
+
+  const loading = isClassesLoading || (Boolean(selectedBatch) && isSummaryLoading);
+  const error = isClassesError || isSummaryError
+    ? 'Failed to load attendance data. Please try again.'
+    : '';
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-5 p-2 sm:p-4">
@@ -135,7 +127,7 @@ const BatchAttendanceReport = () => {
                               className="absolute inset-y-0 left-0"
                               style={{
                                 width: `${student.attendancePercentage}%`,
-                                backgroundColor: parseFloat(student.attendancePercentage) >= 75 ? '#27ae60' : '#e74c3c'
+                                backgroundColor: getAttendanceColor(student.attendancePercentage)
                               }}
                             />
                             <span className="relative z-10 flex h-full items-center justify-center text-xs font-semibold text-slate-900">

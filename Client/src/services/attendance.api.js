@@ -30,6 +30,15 @@ export const getStudentAttendance = async (studentId) => {
   }
 };
 
+export const getMyStudentAttendance = async () => {
+  try {
+    const response = await API.get('/attendance/student/me');
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
 export const getAttendanceSummary = async (batchId) => {
   try {
     const response = await API.get(`/attendance/batch/${batchId}/summary`);

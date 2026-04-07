@@ -4,6 +4,7 @@ import { Student } from "../models/student.model.js";
 import { User } from "../models/user.model.js";
 import { Subject } from "../models/subject.model.js";
 import { Batch } from "../models/batch.model.js";
+import { Attendance } from "../models/attendance.model.js";
 import { sendTenantMail } from "../services/mail/mail.service.js";
 import { MAIL_TYPES } from "../services/mail/mail.constant.js";
 
@@ -365,9 +366,21 @@ export const getClassesByTutor = async (req, res) => {
       Class.find({ teacherId: tutorProfile._id, tenantId }).sort({ createdAt: -1 })
     );
 
+    const classIds = classes.map((classDoc) => classDoc._id);
+    const attendedClassIds = await Attendance.distinct("classId", {
+      tenantId,
+      classId: { $in: classIds },
+    });
+    const attendedClassSet = new Set(attendedClassIds.map((id) => String(id)));
+
+    const classesWithAttendance = classes.map((classDoc) => ({
+      ...classDoc.toObject(),
+      hasAttendance: attendedClassSet.has(String(classDoc._id)),
+    }));
+
     return res.status(200).json({
       message: "Classes fetched successfully",
-      classes,
+      classes: classesWithAttendance,
     });
   } catch (error) {
     console.error("Get Tutor Classes Error:", error);

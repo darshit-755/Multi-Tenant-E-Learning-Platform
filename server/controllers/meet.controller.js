@@ -46,7 +46,7 @@ export const createMeetLink = async (req, res) => {
     console.error("Meeting Link Generation Error:", error.message);
     return res.status(500).json({
       success: false,
-      message: "Failed to create meeting link",
+      message: error.message || "Failed to create meeting link",
     });
   }
 };

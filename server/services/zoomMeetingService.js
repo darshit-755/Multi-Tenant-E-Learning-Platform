@@ -25,8 +25,6 @@ const getZoomAccessToken = async () => {
     }
   );
 
-  console.log("tokens: ",tokenRes.data?.access_token );
-
   return tokenRes.data?.access_token;
 };
 
@@ -51,28 +49,41 @@ export const createZoomMeeting = async ({
     Math.ceil((new Date(endDateTime) - new Date(startDateTime)) / (1000 * 60))
   );
 
-  const meetingRes = await axios.post(
-    `https://api.zoom.us/v2/users/${encodeURIComponent(zoomUserId)}/meetings`,
-    {
-      topic,
-      type: 2,
-      start_time: new Date(startDateTime).toISOString(),
-      duration: durationInMinutes,
-      timezone: process.env.ZOOM_TIMEZONE || "Asia/Kolkata",
-      settings: {
-        join_before_host: true,
-        waiting_room: false,
-        host_video: true,
-        participant_video: true,
-        mute_upon_entry: true,
+  let meetingRes;
+  try {
+    meetingRes = await axios.post(
+      `https://api.zoom.us/v2/users/${encodeURIComponent(zoomUserId)}/meetings`,
+      {
+        topic,
+        type: 2,
+        start_time: new Date(startDateTime).toISOString(),
+        duration: durationInMinutes,
+        timezone: process.env.ZOOM_TIMEZONE || "Asia/Kolkata",
+        settings: {
+          join_before_host: true,
+          waiting_room: false,
+          host_video: true,
+          participant_video: true,
+          mute_upon_entry: true,
+        },
       },
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }
-  );
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+  } catch (error) {
+    const zoomMessage =
+      error?.response?.data?.message ||
+      error?.response?.data?.reason ||
+      error?.message ||
+      "Unknown Zoom API error";
+    const status = error?.response?.status;
+    throw new Error(
+      `Zoom meeting creation failed${status ? ` (status ${status})` : ""}: ${zoomMessage}`
+    );
+  }
 
   const joinUrl = meetingRes.data?.join_url;
   if (!joinUrl) {

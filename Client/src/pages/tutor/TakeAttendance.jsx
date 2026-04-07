@@ -1,43 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AttendanceForm from '../../components/tutor/AttendanceForm';
-import { getTutorClassesApi } from '../../services/class.api';
+import { useGetMyClasses } from '../../hooks/tutor/useGetMyClasses';
+import { useGetClassAttendance } from '../../hooks/tutor/useAttendance';
 
 const TakeAttendance = () => {
   const { classId } = useParams();
   const navigate = useNavigate();
-  const [classData, setClassData] = useState(null);
-  const [students, setStudents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const {
+    data: classesData,
+    isLoading: isClassesLoading,
+    isError: isClassesError,
+  } = useGetMyClasses();
+  const {
+    data: classAttendance,
+    isLoading: isAttendanceLoading,
+  } = useGetClassAttendance(classId, { enabled: Boolean(classId) });
 
-  useEffect(() => {
-    const fetchClassData = async () => {
-      try {
-        const response = await getTutorClassesApi();
-        const foundClass = response.data?.classes?.find((c) => c._id === classId);
-        
-        if (!foundClass) {
-          setError('Class not found');
-          return;
-        }
-
-        setClassData(foundClass);
-        
-        // Extract students from batch
-        if (foundClass.batchId?.studentIds) {
-          setStudents(foundClass.batchId.studentIds);
-        }
-      } catch (err) {
-        setError('Failed to load class data. Please try again.');
-        console.error('Error fetching class:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchClassData();
-  }, [classId]);
+  const classData = useMemo(
+    () => classesData?.classes?.find((cls) => cls._id === classId) || null,
+    [classesData, classId]
+  );
+  const students = classData?.batchId?.studentIds || [];
+  const existingAttendance = classAttendance?.attendance || [];
+  const isUpdateMode = existingAttendance.some((record) => Boolean(record._id));
+  const loading = isClassesLoading || isAttendanceLoading;
+  const error = isClassesError
+    ? 'Failed to load class data. Please try again.'
+    : !loading && !classData
+      ? 'Class not found'
+      : '';
 
   const handleAttendanceSubmit = () => {
     // Optionally redirect or show success message
@@ -71,7 +63,9 @@ const TakeAttendance = () => {
   return (
     <div className="mx-auto w-full max-w-6xl space-y-5 p-2 sm:p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">Take Attendance</h1>
+        <h1 className="text-2xl font-bold text-slate-900">
+          {isUpdateMode ? 'Update Attendance' : 'Take Attendance'}
+        </h1>
         <button 
           onClick={() => navigate('/tutor/my-classes')}
           className="inline-flex h-9 items-center rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
@@ -110,6 +104,8 @@ const TakeAttendance = () => {
       <AttendanceForm
         classId={classId}
         students={students}
+        initialAttendance={existingAttendance}
+        isUpdateMode={isUpdateMode}
         onSubmit={handleAttendanceSubmit}
       />
     </div>

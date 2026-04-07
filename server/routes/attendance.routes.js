@@ -3,6 +3,7 @@ import {
   markAttendance,
   getAttendanceByClass,
   getAttendanceByStudent,
+  getMyAttendance,
   getAttendanceSummary,
   updateAttendance,
 } from "../controllers/attendance.controller.js";
@@ -28,6 +29,13 @@ router.get(
 );
 
 // Get student attendance history (accessible to student, tenant)
+router.get(
+  "/student/me",
+  authMiddleware,
+  authorizeRoles("student"),
+  getMyAttendance
+);
+
 router.get(
   "/student/:studentId",
   authMiddleware,
