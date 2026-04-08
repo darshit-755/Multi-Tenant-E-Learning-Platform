@@ -1,7 +1,7 @@
 import cron from "node-cron";
 import { Class } from "../models/class.model.js";
 import { User } from "../models/user.model.js";
-import { sendTenantMail} from "../services/mail/mail.service.js";
+import { sendTenantMail} from "./mail/mail.service.js";
 import {MAIL_TYPES} from "../services/mail/mail.constant.js"
 import {getClassStartDateTime} from "../utils/classHelper.js"
 

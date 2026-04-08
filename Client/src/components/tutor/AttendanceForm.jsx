@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { useMarkAttendance } from '../../hooks/tutor/useAttendance';
 
 const AttendanceForm = ({
@@ -9,8 +10,6 @@ const AttendanceForm = ({
   isUpdateMode = false,
 }) => {
   const [attendanceData, setAttendanceData] = useState([]);
-  const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState('');
   const markAttendanceMutation = useMarkAttendance();
 
   useEffect(() => {
@@ -49,19 +48,16 @@ const AttendanceForm = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage('');
 
     try {
       const result = await markAttendanceMutation.mutateAsync({ classId, attendanceData });
-      setMessageType('success');
-      setMessage(isUpdateMode ? 'Attendance updated successfully!' : 'Attendance marked successfully!');
+      toast.success(isUpdateMode ? 'Attendance updated successfully!' : 'Attendance marked successfully!');
       
       if (onSubmit) {
         onSubmit(result);
       }
     } catch (error) {
-      setMessageType('error');
-      setMessage(error?.message || `Failed to ${isUpdateMode ? 'update' : 'mark'} attendance. Please try again.`);
+      toast.error(error?.message || `Failed to ${isUpdateMode ? 'update' : 'mark'} attendance. Please try again.`);
       console.error('Error marking attendance:', error);
     }
   };
@@ -90,18 +86,6 @@ const AttendanceForm = ({
           </span>
         </div>
       </div>
-
-      {message && (
-        <div
-          className={`rounded-md border px-3 py-2 text-sm ${
-            messageType === 'success'
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-              : 'border-rose-200 bg-rose-50 text-rose-700'
-          }`}
-        >
-          {message}
-        </div>
-      )}
 
       <form onSubmit={handleSubmit}>
         <div className="mb-4 flex flex-wrap items-center gap-2">

@@ -33,9 +33,9 @@ const TakeAttendance = () => {
 
   const handleAttendanceSubmit = () => {
     // Optionally redirect or show success message
-    setTimeout(() => {
+    
       navigate('/tutor/my-classes');
-    }, 2000);
+    
   };
 
   if (loading) {

@@ -33,6 +33,7 @@ import TutorMyClasses from "@/pages/tutor/MyClasses";
 import TutorBatches from "@/pages/tutor/Batches";
 import TutorStudents from "@/pages/tutor/Students";
 import TakeAttendance from "@/pages/tutor/TakeAttendance";
+import TutorAttendanceReport from "@/pages/tutor/AttendanceReport";
 
 //student pages
 import StudentLayout from "@/layouts/StudentLayout";
@@ -100,6 +101,7 @@ function App() {
             <Route path="/tutor/take-attendance/:classId" element={<TakeAttendance />} />
             <Route path="/tutor/batches" element={<TutorBatches />} />
             <Route path="/tutor/students" element={<TutorStudents />} />
+            <Route path="/tutor/attendance-report" element={<TutorAttendanceReport />} />
             <Route path="/tutor/profile" element={<TutorProfile />} />
           </Route>
         </Route>
