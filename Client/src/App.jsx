@@ -46,7 +46,7 @@ import StudentAttendancePage from "@/pages/student/StudentAttendancePage";
 import Register from "@/pages/auth/Register";
 import Login from "@/pages/auth/Login";
 import Unauthorized from "@/components/common/Unauthorized";
-import BatchAttendanceReport from "@/components/admin/BatchAttendanceReport";
+import BatchAttendanceReport from "@/components/tenant/BatchAttendanceReport";
 
 function App() {
   return (

@@ -57,15 +57,21 @@ export default function ManageClasses() {
   const [editingClass, setEditingClass] = useState(null);
   const [deleteClassId, setDeleteClassId] = useState(null);
 
-  const [selectedSubjectId, setSelectedSubjectId] = useState("");
-  const [selectedBatchId, setSelectedBatchId] = useState("");
-  const [selectedTeacherId, setSelectedTeacherId] = useState("");
-  const [selectedVideoProvider, setSelectedVideoProvider] = useState("manual");
-  const [selectedPrivacy, setSelectedPrivacy] = useState("");
-  const [selectedReminderTime, setSelectedReminderTime] = useState("0");
-  const [videoLink, setVideoLink] = useState("");
-
   const isEditMode = Boolean(editingClass);
+
+  const defaultFormValues = {
+    topic: "",
+    subjectId: "",
+    batchId: "",
+    teacherId: "",
+    date: "",
+    startTime: "",
+    duration: 60,
+    videoProvider: "manual",
+    privacy: "",
+    reminderTime: "0",
+    videoLink: "",
+  };
 
   const {
     register,
@@ -73,8 +79,9 @@ export default function ManageClasses() {
     reset,
     setValue,
     getValues,
+    watch,
     formState: { errors },
-  } = useForm();
+  } = useForm({ defaultValues: defaultFormValues });
 
   const tutors = tutorsData?.tutors || [];
   const subjects = subjectsData?.subjects || [];
@@ -84,11 +91,12 @@ export default function ManageClasses() {
     const selectedBatch = batches.find((batch) => batch._id === batchId);
     if (!selectedBatch?.teacherId?._id) return;
     const teacherId = selectedBatch.teacherId._id;
-    setSelectedTeacherId(teacherId);
     setValue("teacherId", teacherId, { shouldValidate: true });
   };
 
   const handleGenerateMeeting = async () => {
+    const selectedVideoProvider = getValues("videoProvider");
+
     if (!["gmeet", "zoom"].includes(selectedVideoProvider)) {
       toast.error("Please select Google Meet or Zoom first");
       return;
@@ -122,7 +130,10 @@ export default function ManageClasses() {
       });
 
       if (res?.success) {
-        setVideoLink(res.meetLink || "");
+        setValue("videoLink", res.meetLink || "", {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
         toast.success(
           selectedVideoProvider === "zoom"
             ? "Zoom link generated!"
@@ -138,34 +149,27 @@ export default function ManageClasses() {
 
   const resetFormState = () => {
     setEditingClass(null);
-    setSelectedSubjectId("");
-    setSelectedBatchId("");
-    setSelectedTeacherId("");
-    setSelectedVideoProvider("manual");
-    setSelectedPrivacy("");
-    setSelectedReminderTime("0");
-    setVideoLink("");
-    reset();
+    reset(defaultFormValues);
   };
 
   const onSubmit = async (data) => {
-    if (!selectedSubjectId || !selectedBatchId || !selectedTeacherId) {
+    if (!data.subjectId || !data.batchId || !data.teacherId) {
       toast.error("Please select subject and batch");
       return;
     }
 
     const payload = {
       topic: data.topic,
-      subjectId: selectedSubjectId,
-      batchId: selectedBatchId,
-      teacherId: selectedTeacherId,
+      subjectId: data.subjectId,
+      batchId: data.batchId,
+      teacherId: data.teacherId,
       date: data.date,
       startTime: data.startTime,
       duration: Number(data.duration),
-      videoProvider: selectedVideoProvider,
-      videoLink,
-      privacy: selectedPrivacy || undefined,
-      reminderTime: Number(selectedReminderTime),
+      videoProvider: data.videoProvider,
+      videoLink: data.videoLink,
+      privacy: data.privacy || undefined,
+      reminderTime: Number(data.reminderTime ?? 0),
     };
 
     if (isEditMode) {
@@ -190,18 +194,20 @@ export default function ManageClasses() {
 
   const handleEdit = (cls) => {
     setEditingClass(cls);
-    setValue("topic", cls.topic || "");
-    setValue("date", cls.date || "");
-    setValue("startTime", cls.startTime || "");
-    setValue("duration", cls.duration || 60);
-
-    setSelectedSubjectId(cls.subjectId?._id || "");
-    setSelectedBatchId(cls.batchId?._id || "");
-    setSelectedTeacherId(cls.teacherId?._id || "");
-    setSelectedVideoProvider(cls.videoProvider || "manual");
-    setSelectedPrivacy(cls.privacy || "");
-    setSelectedReminderTime(String(cls.reminderTime ?? 0));
-    setVideoLink(cls.videoLink || "");
+    reset({
+      ...defaultFormValues,
+      topic: cls.topic || "",
+      subjectId: cls.subjectId?._id || "",
+      batchId: cls.batchId?._id || "",
+      teacherId: cls.teacherId?._id || "",
+      date: cls.date || "",
+      startTime: cls.startTime || "",
+      duration: cls.duration || 60,
+      videoProvider: cls.videoProvider || "manual",
+      privacy: cls.privacy || "",
+      reminderTime: String(cls.reminderTime ?? 0),
+      videoLink: cls.videoLink || "",
+    });
   };
 
   const handleStatusChange = async (cls, newStatus) => {
@@ -244,24 +250,12 @@ export default function ManageClasses() {
             onSubmit={onSubmit}
             register={register}
             handleSubmit={handleSubmit}
+            watch={watch}
+            setValue={setValue}
             errors={errors}
             tutors={tutors}
             subjects={subjects}
             batches={batches}
-            selectedSubjectId={selectedSubjectId}
-            setSelectedSubjectId={setSelectedSubjectId}
-            selectedBatchId={selectedBatchId}
-            setSelectedBatchId={setSelectedBatchId}
-            selectedTeacherId={selectedTeacherId}
-            setSelectedTeacherId={setSelectedTeacherId}
-            selectedVideoProvider={selectedVideoProvider}
-            setSelectedVideoProvider={setSelectedVideoProvider}
-            selectedPrivacy={selectedPrivacy}
-            setSelectedPrivacy={setSelectedPrivacy}
-            selectedReminderTime={selectedReminderTime}
-            setSelectedReminderTime={setSelectedReminderTime}
-            videoLink={videoLink}
-            setVideoLink={setVideoLink}
             isEditMode={isEditMode}
             isCreating={isCreating}
             isUpdating={isUpdating}

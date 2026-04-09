@@ -15,7 +15,7 @@ const TutorSidebarContent = () => {
           "flex items-center gap-2 px-3 py-2 rounded-md transition-colors",
           "text-slate-300 hover:bg-slate-800 hover:text-white",
           location.pathname === `${basePath}/dashboard` &&
-            "bg-slate-800 text-white"
+          "bg-slate-800 text-white"
         )}
       >
         <LayoutDashboard size={18} />
@@ -28,7 +28,7 @@ const TutorSidebarContent = () => {
           "flex items-center gap-2 px-3 py-2 rounded-md transition-colors",
           "text-slate-300 hover:bg-slate-800 hover:text-white",
           location.pathname === `${basePath}/my-classes` &&
-            "bg-slate-800 text-white"
+          "bg-slate-800 text-white"
         )}
       >
         <BookOpen size={18} />
@@ -41,25 +41,13 @@ const TutorSidebarContent = () => {
           "flex items-center gap-2 px-3 py-2 rounded-md transition-colors",
           "text-slate-300 hover:bg-slate-800 hover:text-white",
           location.pathname === `${basePath}/batches` &&
-            "bg-slate-800 text-white"
+          "bg-slate-800 text-white"
         )}
       >
         <Users size={18} />
         Batches
       </Link>
 
-      <Link
-        to={`${basePath}/attendance-report`}
-        className={cn(
-          "flex items-center gap-2 px-3 py-2 rounded-md transition-colors",
-          "text-slate-300 hover:bg-slate-800 hover:text-white",
-          location.pathname === `${basePath}/attendance-report` &&
-            "bg-slate-800 text-white"
-        )}
-      >
-        <BarChart3 size={18} />
-        Attendance Report
-      </Link>
 
       <Link
         to={`${basePath}/students`}
@@ -67,7 +55,7 @@ const TutorSidebarContent = () => {
           "flex items-center gap-2 px-3 py-2 rounded-md transition-colors",
           "text-slate-300 hover:bg-slate-800 hover:text-white",
           location.pathname === `${basePath}/students` &&
-            "bg-slate-800 text-white"
+          "bg-slate-800 text-white"
         )}
       >
         <Users size={18} />
@@ -80,11 +68,24 @@ const TutorSidebarContent = () => {
           "flex items-center gap-2 px-3 py-2 rounded-md transition-colors",
           "text-slate-300 hover:bg-slate-800 hover:text-white",
           location.pathname.includes(`${basePath}/take-attendance`) &&
-            "bg-slate-800 text-white"
+          "bg-slate-800 text-white"
         )}
       >
         <BookOpen size={18} />
         Take Attendance
+      </Link>
+
+      <Link
+        to={`${basePath}/attendance-report`}
+        className={cn(
+          "flex items-center gap-2 px-3 py-2 rounded-md transition-colors",
+          "text-slate-300 hover:bg-slate-800 hover:text-white",
+          location.pathname === `${basePath}/attendance-report` &&
+          "bg-slate-800 text-white"
+        )}
+      >
+        <BarChart3 size={18} />
+        Attendance Report
       </Link>
 
     </nav>

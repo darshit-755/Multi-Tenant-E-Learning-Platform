@@ -13,24 +13,12 @@ export default function ClassForm({
   onSubmit,
   register,
   handleSubmit,
+  watch,
+  setValue,
   errors,
   tutors,
   subjects,
   batches,
-  selectedSubjectId,
-  setSelectedSubjectId,
-  selectedBatchId,
-  setSelectedBatchId,
-  selectedTeacherId,
-  setSelectedTeacherId,
-  selectedVideoProvider,
-  setSelectedVideoProvider,
-  selectedPrivacy,
-  setSelectedPrivacy,
-  selectedReminderTime,
-  setSelectedReminderTime,
-  videoLink,
-  setVideoLink,
   isEditMode,
   isCreating,
   isUpdating,
@@ -39,6 +27,13 @@ export default function ClassForm({
   isGeneratingMeet,
   resetFormState,
 }) {
+  const selectedSubjectId = watch("subjectId") || "";
+  const selectedBatchId = watch("batchId") || "";
+  const selectedTeacherId = watch("teacherId") || "";
+  const selectedVideoProvider = watch("videoProvider") || "manual";
+  const selectedPrivacy = watch("privacy") || "";
+  const selectedReminderTime = watch("reminderTime") || "0";
+  const videoLink = watch("videoLink") || "";
   
   const activeSubjects = subjects.filter((s) => s.status === "active");
 
@@ -49,10 +44,10 @@ export default function ClassForm({
   });
 
   const handleVideoProviderChange = (provider) => {
-    setSelectedVideoProvider(provider);
+    setValue("videoProvider", provider, { shouldValidate: true, shouldDirty: true });
     // Keep generated links for Google Meet / Zoom, clear for other providers.
     if (!["gmeet", "zoom"].includes(provider)) {
-      setVideoLink("");
+      setValue("videoLink", "", { shouldValidate: true, shouldDirty: true });
     }
   };
 
@@ -74,12 +69,16 @@ export default function ClassForm({
       {/* Subject */}
       <div>
         <Label>Subject</Label>
+        <input
+          type="hidden"
+          {...register("subjectId", { required: "Subject is required" })}
+        />
         <Select
           value={selectedSubjectId}
           onValueChange={(value) => {
-            setSelectedSubjectId(value);
-            setSelectedBatchId("");
-            setSelectedTeacherId("");
+            setValue("subjectId", value, { shouldValidate: true, shouldDirty: true });
+            setValue("batchId", "", { shouldValidate: true, shouldDirty: true });
+            setValue("teacherId", "", { shouldValidate: true, shouldDirty: true });
           }}
         >
           <SelectTrigger className="mt-1 w-full">
@@ -93,15 +92,20 @@ export default function ClassForm({
             ))}
           </SelectContent>
         </Select>
+        {errors.subjectId && <p className="text-red-500 text-xs">{errors.subjectId.message}</p>}
       </div>
 
       {/* Batch */}
       <div>
         <Label>Batch</Label>
+        <input
+          type="hidden"
+          {...register("batchId", { required: "Batch is required" })}
+        />
         <Select
           value={selectedBatchId}
           onValueChange={(value) => {
-            setSelectedBatchId(value);
+            setValue("batchId", value, { shouldValidate: true, shouldDirty: true });
             syncTeacherFromBatch(value);
           }}
         >
@@ -116,11 +120,13 @@ export default function ClassForm({
             ))}
           </SelectContent>
         </Select>
+        {errors.batchId && <p className="text-red-500 text-xs">{errors.batchId.message}</p>}
       </div>
 
       {/* Teacher */}
       <div>
         <Label>Teacher</Label>
+        <input type="hidden" {...register("teacherId")} />
         <Input
           className="mt-1"
           readOnly
@@ -163,6 +169,7 @@ export default function ClassForm({
       {/* Video Provider */}
       <div>
         <Label>Video Provider</Label>
+        <input type="hidden" {...register("videoProvider")} />
         <Select value={selectedVideoProvider} onValueChange={handleVideoProviderChange}>
           <SelectTrigger className="mt-1 w-full">
             <SelectValue placeholder="Select provider" />
@@ -205,8 +212,7 @@ export default function ClassForm({
         <Label className='mb-2'>Video Link</Label>
         <Input
           placeholder="Paste video link"
-          value={videoLink}
-          onChange={(e) => setVideoLink(e.target.value)}
+          {...register("videoLink")}
         />
         </>
       )}
@@ -215,7 +221,13 @@ export default function ClassForm({
      {selectedVideoProvider === "youtube" && (
               <div>
                 <Label>Privacy</Label>
-                <Select value={selectedPrivacy || "public"} onValueChange={setSelectedPrivacy}>
+                <input type="hidden" {...register("privacy")} />
+                <Select
+                  value={selectedPrivacy || "public"}
+                  onValueChange={(value) =>
+                    setValue("privacy", value, { shouldValidate: true, shouldDirty: true })
+                  }
+                >
                   <SelectTrigger className="mt-1 w-full">
                     <SelectValue placeholder="Select privacy" />
                   </SelectTrigger>
@@ -231,7 +243,13 @@ export default function ClassForm({
       {/* Reminder */}
        <div>
               <Label>Reminder</Label>
-              <Select value={selectedReminderTime} onValueChange={setSelectedReminderTime}>
+              <input type="hidden" {...register("reminderTime")} />
+              <Select
+                value={selectedReminderTime}
+                onValueChange={(value) =>
+                  setValue("reminderTime", value, { shouldValidate: true, shouldDirty: true })
+                }
+              >
                 <SelectTrigger className="mt-1 w-full">
                   <SelectValue placeholder="Select reminder time" />
                 </SelectTrigger>
