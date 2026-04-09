@@ -1,0 +1,46 @@
+{
+  "hash": "5f6af416",
+  "configHash": "34725ba9",
+  "lockfileHash": "9371ee25",
+  "browserHash": "028a8580",
+  "optimized": {
+    "react-dom/client": {
+      "src": "../../node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "beb05679",
+      "needsInterop": true
+    },
+    "react-router-dom": {
+      "src": "../../node_modules/react-router-dom/dist/index.mjs",
+      "file": "react-router-dom.js",
+      "fileHash": "cac6ad88",
+      "needsInterop": false
+    },
+    "@tanstack/react-query": {
+      "src": "../../node_modules/@tanstack/react-query/build/modern/index.js",
+      "file": "@tanstack_react-query.js",
+      "fileHash": "6fe06a91",
+      "needsInterop": false
+    },
+    "@react-oauth/google": {
+      "src": "../../node_modules/@react-oauth/google/dist/index.esm.js",
+      "file": "@react-oauth_google.js",
+      "fileHash": "d9401f11",
+      "needsInterop": false
+    },
+    "sonner": {
+      "src": "../../node_modules/sonner/dist/index.mjs",
+      "file": "sonner.js",
+      "fileHash": "a31aaacc",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "chunk-XRH3HZKE": {
+      "file": "chunk-XRH3HZKE.js"
+    },
+    "chunk-FIU4QQSA": {
+      "file": "chunk-FIU4QQSA.js"
+    }
+  }
+}
