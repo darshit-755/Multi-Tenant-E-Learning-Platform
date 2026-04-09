@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useForm, Controller } from "react-hook-form";
 import { usePendingTenants } from "@/hooks/admin/usePendingTenants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,12 +37,16 @@ export default function Tenants() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pendingAction, setPendingAction] = useState(null);
   const [selectedTenantId, setSelectedTenantId] = useState(null);
-  const [filters, setFilters] = useState({
-    tuitionName: "",
-    email: "",
-    plan: "",
-    status: "",
+  const { control, watch, reset } = useForm({
+    defaultValues: {
+      tuitionName: "",
+      email: "",
+      plan: "",
+      status: "",
+    }
   });
+
+  const filters = watch();
 
   const {
     tenants,
@@ -142,56 +147,63 @@ export default function Tenants() {
 
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <Input
-              placeholder="Filter by tuition name"
-              value={filters.tuitionName}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, tuitionName: e.target.value }))
-              }
+            <Controller
+              name="tuitionName"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  placeholder="Filter by tuition name"
+                  {...field}
+                />
+              )}
             />
 
-            <Input
-              placeholder="Filter by email"
-              value={filters.email}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, email: e.target.value }))
-              }
+            <Controller
+              name="email"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  placeholder="Filter by email"
+                  {...field}
+                />
+              )}
             />
 
-            <Input
-              placeholder="Filter by plan"
-              value={filters.plan}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, plan: e.target.value }))
-              }
+            <Controller
+              name="plan"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  placeholder="Filter by plan"
+                  {...field}
+                />
+              )}
             />
 
-            <Select
-              value={filters.status || "all"}
-              onValueChange={(value) =>
-                setFilters((prev) => ({
-                  ...prev,
-                  status: value === "all" ? "" : value,
-                }))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-                <SelectItem value="blocked">Blocked</SelectItem>
-              </SelectContent>
-            </Select>
+            <Controller
+              name="status"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value || "all"} onValueChange={(value) => field.onChange(value === "all" ? "" : value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="blocked">Blocked</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
 
           <div className="mb-4">
             <Button
               variant="outline"
               onClick={() =>
-                setFilters({
+                reset({
                   tuitionName: "",
                   email: "",
                   plan: "",

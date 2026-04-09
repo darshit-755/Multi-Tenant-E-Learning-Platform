@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useForm, Controller } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { useGetOnlineUsers } from "@/hooks/admin/useGetOnlineUsers";
 import { getAllBatchesApi } from "@/services/admin.api";
@@ -36,12 +37,26 @@ const AdminDashboard = () => {
   });
 
   const [activeTable, setActiveTable] = useState(null);
-  const [roleFilter, setRoleFilter] = useState("all");
-  const [sortFilter, setSortFilter] = useState("name-asc");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [batchStatusFilter, setBatchStatusFilter] = useState("all");
-  const [batchSortFilter, setBatchSortFilter] = useState("name-asc");
-  const [batchSearchTerm, setBatchSearchTerm] = useState("");
+  const { control: usersControl, watch: watchUsers, reset: resetUsers } = useForm({
+    defaultValues: {
+      roleFilter: "all",
+      sortFilter: "name-asc",
+      searchTerm: ""
+    }
+  });
+
+  const { control: batchesControl, watch: watchBatches, reset: resetBatches } = useForm({
+    defaultValues: {
+      batchStatusFilter: "all",
+      batchSortFilter: "name-asc",
+      batchSearchTerm: ""
+    }
+  });
+
+  const usersFilters = watchUsers();
+  const batchesFilters = watchBatches();
+  const { roleFilter, sortFilter, searchTerm } = usersFilters;
+  const { batchStatusFilter, batchSortFilter, batchSearchTerm } = batchesFilters;
 
   const users = data?.data?.data || [];
   const batches = batchesData?.data?.batches || [];
@@ -105,15 +120,19 @@ const AdminDashboard = () => {
     });
 
   const clearFilters = () => {
-    setRoleFilter("all");
-    setSortFilter("name-asc");
-    setSearchTerm("");
+    resetUsers({
+      roleFilter: "all",
+      sortFilter: "name-asc",
+      searchTerm: ""
+    });
   };
 
   const clearBatchFilters = () => {
-    setBatchStatusFilter("all");
-    setBatchSortFilter("name-asc");
-    setBatchSearchTerm("");
+    resetBatches({
+      batchStatusFilter: "all",
+      batchSortFilter: "name-asc",
+      batchSearchTerm: ""
+    });
   };
 
   return (
@@ -181,44 +200,55 @@ const AdminDashboard = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search name, email, role"
-                className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs"
+              <Controller
+                name="searchTerm"
+                control={usersControl}
+                render={({ field }) => (
+                  <input
+                    type="text"
+                    {...field}
+                    placeholder="Search name, email, role"
+                    className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs"
+                  />
+                )}
               />
 
-              <Select
-                value={roleFilter}
-                onValueChange={(value) => setRoleFilter(value)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Filter role" />
-                </SelectTrigger>
+              <Controller
+                name="roleFilter"
+                control={usersControl}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Filter role" />
+                    </SelectTrigger>
 
-                <SelectContent>
-                  <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="tenant">Tenant</SelectItem>
-                  <SelectItem value="tutor">Tutor</SelectItem>
-                  <SelectItem value="student">Student</SelectItem>
-                </SelectContent>
-              </Select>
+                    <SelectContent>
+                      <SelectItem value="all">All Roles</SelectItem>
+                      <SelectItem value="tenant">Tenant</SelectItem>
+                      <SelectItem value="tutor">Tutor</SelectItem>
+                      <SelectItem value="student">Student</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
 
-              <Select
-                value={sortFilter}
-                onValueChange={(value) => setSortFilter(value)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
+              <Controller
+                name="sortFilter"
+                control={usersControl}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
 
-                <SelectContent>
-                  <SelectItem value="name-asc">Sort: Name A-Z</SelectItem>
-                  <SelectItem value="name-desc">Sort: Name Z-A</SelectItem>
+                    <SelectContent>
+                      <SelectItem value="name-asc">Sort: Name A-Z</SelectItem>
+                      <SelectItem value="name-desc">Sort: Name Z-A</SelectItem>
 
-                </SelectContent>
-              </Select>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
 
           </CardHeader>
@@ -285,43 +315,54 @@ const AdminDashboard = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              <input
-                type="text"
-                value={batchSearchTerm}
-                onChange={(e) => setBatchSearchTerm(e.target.value)}
-                placeholder="Search batch, tenant, subject, teacher"
-                className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs"
+              <Controller
+                name="batchSearchTerm"
+                control={batchesControl}
+                render={({ field }) => (
+                  <input
+                    type="text"
+                    {...field}
+                    placeholder="Search batch, tenant, subject, teacher"
+                    className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs"
+                  />
+                )}
               />
 
-              <Select
-                value={batchStatusFilter}
-                onValueChange={(value) => setBatchStatusFilter(value)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Filter status" />
-                </SelectTrigger>
+              <Controller
+                name="batchStatusFilter"
+                control={batchesControl}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Filter status" />
+                    </SelectTrigger>
 
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
 
-              <Select
-                value={batchSortFilter}
-                onValueChange={(value) => setBatchSortFilter(value)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
+              <Controller
+                name="batchSortFilter"
+                control={batchesControl}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
 
-                <SelectContent>
-                  <SelectItem value="name-asc">Sort: Name A-Z</SelectItem>
-                  <SelectItem value="name-desc">Sort: Name Z-A</SelectItem>
-                  <SelectItem value="status">Sort: Status</SelectItem>
-                </SelectContent>
-              </Select>
+                    <SelectContent>
+                      <SelectItem value="name-asc">Sort: Name A-Z</SelectItem>
+                      <SelectItem value="name-desc">Sort: Name Z-A</SelectItem>
+                      <SelectItem value="status">Sort: Status</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
           </CardHeader>
 

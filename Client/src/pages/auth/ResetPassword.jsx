@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,21 +11,29 @@ export default function ResetPassword() {
   const { token } = useParams();
   const navigate = useNavigate();
 
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const { register, handleSubmit, watch, formState: { errors } } = useForm({
+    defaultValues: {
+      password: "",
+      confirmPassword: ""
+    }
+  });
+
   const { mutate: resetPassword } = useResetPassword();
 
-  const handleReset = async () => {
-    if (!password || !confirmPassword) {
+  const password = watch("password");
+  const confirmPassword = watch("confirmPassword");
+
+  const onSubmit = async (data) => {
+    if (!data.password || !data.confirmPassword) {
       return toast.error("All fields required");
     }
 
-    if (password !== confirmPassword) {
+    if (data.password !== data.confirmPassword) {
       return toast.error("Passwords do not match");
     }
 
     resetPassword(
-      { token, password },
+      { token, password: data.password },
       {
         onSuccess: () => {
           toast.success(
@@ -50,7 +58,7 @@ export default function ResetPassword() {
            
           </div>
 
-          <div className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* New Password */}
             <div className="space-y-2">
               <Label className="text-slate-300">New Password</Label>
@@ -58,8 +66,7 @@ export default function ResetPassword() {
               <Input
                 type="password"
                 placeholder="Enter new password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                {...register("password")}
                 className="bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500
                          focus-visible:ring-2 focus-visible:ring-slate-500"
               />
@@ -72,20 +79,19 @@ export default function ResetPassword() {
               <Input
                 type="password"
                 placeholder="Confirm new password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                {...register("confirmPassword")}
                 className="bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500
                          focus-visible:ring-2 focus-visible:ring-slate-500"
               />
             </div>
-          </div>
 
-          <Button
-            className="w-full bg-slate-100 text-slate-900 hover:bg-slate-200 font-medium transition"
-            onClick={handleReset}
-          >
-            Reset Password
-          </Button>
+            <Button
+              type="submit"
+              className="w-full bg-slate-100 text-slate-900 hover:bg-slate-200 font-medium transition"
+            >
+              Reset Password
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>

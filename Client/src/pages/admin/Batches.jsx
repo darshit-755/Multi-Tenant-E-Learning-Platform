@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useForm, Controller } from "react-hook-form";
 import { useAllBatches } from "@/hooks/admin/useAllBatches";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,12 +27,16 @@ import {
 
 export default function Batches() {
   const [currentPage, setCurrentPage] = useState(1);
-  const [filters, setFilters] = useState({
-    batchName: "",
-    tenant: "",
-    subject: "",
-    status: ""
+  const { control, watch, reset } = useForm({
+    defaultValues: {
+      batchName: "",
+      tenant: "",
+      subject: "",
+      status: ""
+    }
   });
+
+  const filters = watch();
 
   const {
     batches,
@@ -74,41 +79,59 @@ export default function Batches() {
         <CardContent>
           {/* Filters */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <Input
-              placeholder="Filter by batch name"
-              value={filters.batchName}
-              onChange={(e) => setFilters(prev => ({ ...prev, batchName: e.target.value }))}
+            <Controller
+              name="batchName"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  placeholder="Filter by batch name"
+                  {...field}
+                />
+              )}
             />
-            <Input
-              placeholder="Filter by tenant"
-              value={filters.tenant}
-              onChange={(e) => setFilters(prev => ({ ...prev, tenant: e.target.value }))}
+            <Controller
+              name="tenant"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  placeholder="Filter by tenant"
+                  {...field}
+                />
+              )}
             />
-            <Input
-              placeholder="Filter by subject"
-              value={filters.subject}
-              onChange={(e) => setFilters(prev => ({ ...prev, subject: e.target.value }))}
+            <Controller
+              name="subject"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  placeholder="Filter by subject"
+                  {...field}
+                />
+              )}
             />
-            <Select
-              value={filters.status || "all"}
-              onValueChange={(value) => setFilters(prev => ({ ...prev, status: value === "all" ? "" : value }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
+            <Controller
+              name="status"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value || "all"} onValueChange={(value) => field.onChange(value === "all" ? "" : value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
 
           <div className="mb-4">
             <Button
               variant="outline"
               onClick={() =>
-                setFilters({
+                reset({
                   batchName: "",
                   tenant: "",
                   subject: "",

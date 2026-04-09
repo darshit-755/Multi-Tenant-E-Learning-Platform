@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useForm, Controller } from "react-hook-form";
 import { useAllStudents } from "@/hooks/admin/useAllStudents";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,13 +27,17 @@ import {
 
 export default function Students() {
   const [currentPage, setCurrentPage] = useState(1);
-  const [filters, setFilters] = useState({
-    name: "",
-    email: "",
-    batch: "",
-    status: "",
-    tenant: ""
+  const { control, watch, reset } = useForm({
+    defaultValues: {
+      name: "",
+      email: "",
+      batch: "",
+      status: "",
+      tenant: ""
+    }
   });
+
+  const filters = watch();
 
   const {
     students,
@@ -63,38 +68,61 @@ export default function Students() {
         <CardContent>
           {/* Filters */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-            <Input
-              placeholder="Filter by name"
-              value={filters.name}
-              onChange={(e) => setFilters(prev => ({ ...prev, name: e.target.value }))}
+            <Controller
+              name="name"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  placeholder="Filter by name"
+                  {...field}
+                />
+              )}
             />
-            <Input
-              placeholder="Filter by email"
-              value={filters.email}
-              onChange={(e) => setFilters(prev => ({ ...prev, email: e.target.value }))}
+            <Controller
+              name="email"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  placeholder="Filter by email"
+                  {...field}
+                />
+              )}
             />
-            <Input
-              placeholder="Filter by batch"
-              value={filters.batch}
-              onChange={(e) => setFilters(prev => ({ ...prev, batch: e.target.value }))}
+            <Controller
+              name="batch"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  placeholder="Filter by batch"
+                  {...field}
+                />
+              )}
             />
-            <Select
-              value={filters.status || "all"}
-              onValueChange={(value) => setFilters(prev => ({ ...prev, status: value === "all" ? "" : value }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-            <Input
-              placeholder="Filter by tenant"
-              value={filters.tenant}
-              onChange={(e) => setFilters(prev => ({ ...prev, tenant: e.target.value }))}
+            <Controller
+              name="status"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value || "all"} onValueChange={(value) => field.onChange(value === "all" ? "" : value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <Controller
+              name="tenant"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  placeholder="Filter by tenant"
+                  {...field}
+                />
+              )}
             />
           </div>
 
@@ -102,7 +130,7 @@ export default function Students() {
             <Button
               variant="outline"
               onClick={() =>
-                setFilters({
+                reset({
                   name: "",
                   email: "",
                   batch: "",

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { toast } from 'sonner';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { useMarkAttendance } from '../../hooks/tutor/useAttendance';
 
 const AttendanceForm = ({
@@ -9,48 +10,59 @@ const AttendanceForm = ({
   initialAttendance = [],
   isUpdateMode = false,
 }) => {
-  const [attendanceData, setAttendanceData] = useState([]);
   const markAttendanceMutation = useMarkAttendance();
 
-  useEffect(() => {
+  const createInitialAttendanceData = () => {
     if (students && students.length > 0) {
       const initialAttendanceMap = new Map(
         initialAttendance.map((record) => [String(record.studentId), record])
       );
 
-      const initialData = students.map(student => ({
+      return students.map(student => ({
         studentId: student._id,
         present: initialAttendanceMap.get(String(student._id))?.present === true,
         notes: initialAttendanceMap.get(String(student._id))?.notes || ''
       }));
-      setAttendanceData(initialData);
+    }
+    return [];
+  };
+
+  const { control, handleSubmit: onSubmitRHF, watch, setValue } = useForm({
+    defaultValues: {
+      attendanceData: createInitialAttendanceData()
+    }
+  });
+
+  const { fields, update } = useFieldArray({
+    control,
+    name: 'attendanceData'
+  });
+
+  useEffect(() => {
+    const newData = createInitialAttendanceData();
+    if (newData.length > 0) {
+      newData.forEach((item, index) => {
+        if (fields[index]) {
+          update(index, item);
+        }
+      });
     }
   }, [students, initialAttendance]);
 
-  const handleAttendanceChange = (studentId, field, value) => {
-    setAttendanceData(prevData =>
-      prevData.map(record =>
-        record.studentId === studentId
-          ? { ...record, [field]: value }
-          : record
-      )
-    );
-  };
+  const attendanceData = watch('attendanceData');
 
   const handleSelectAll = (isPresent) => {
-    setAttendanceData(prevData =>
-      prevData.map(record => ({
-        ...record,
-        present: isPresent
-      }))
-    );
+    attendanceData.forEach((_, index) => {
+      update(index, { ...attendanceData[index], present: isPresent });
+    });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
+  const handleSubmit = async (formData) => {
     try {
-      const result = await markAttendanceMutation.mutateAsync({ classId, attendanceData });
+      const result = await markAttendanceMutation.mutateAsync({ 
+        classId, 
+        attendanceData: formData.attendanceData 
+      });
       toast.success(isUpdateMode ? 'Attendance updated successfully!' : 'Attendance marked successfully!');
       
       if (onSubmit) {
@@ -87,7 +99,7 @@ const AttendanceForm = ({
         </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={onSubmitRHF(handleSubmit)}>
         <div className="mb-4 flex flex-wrap items-center gap-2">
           {/** Keep both buttons visually consistent; only active one is highlighted. */}
           <button
@@ -115,12 +127,13 @@ const AttendanceForm = ({
         </div>
 
         <div className="space-y-3">
-          {attendanceData.length > 0 ? (
-            attendanceData.map((record) => {
-              const student = students.find(s => s._id === record.studentId);
+          {fields.length > 0 ? (
+            fields.map((field, index) => {
+              const student = students.find(s => s._id === field.studentId);
+              const record = attendanceData[index];
               return (
                 <div
-                  key={record.studentId}
+                  key={field.id}
                   className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 sm:grid-cols-[1fr_1.4fr] sm:items-center"
                 >
                   <div className="space-y-0.5">
@@ -130,27 +143,41 @@ const AttendanceForm = ({
 
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
-                      <input
-                        type="checkbox"
-                        checked={record.present}
-                        onChange={(e) =>
-                          handleAttendanceChange(record.studentId, 'present', e.target.checked)
-                        }
-                        className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                      <Controller
+                        name={`attendanceData.${index}.present`}
+                        control={control}
+                        render={({ field }) => (
+                          <input
+                            type="checkbox"
+                            checked={field.value}
+                            onChange={(e) => {
+                              field.onChange(e.target.checked);
+                              update(index, { ...record, present: e.target.checked });
+                            }}
+                            className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                          />
+                        )}
                       />
-                      <span className={record.present ? 'text-emerald-600' : 'text-rose-600'}>
-                        {record.present ? 'Present' : 'Absent'}
+                      <span className={record?.present ? 'text-emerald-600' : 'text-rose-600'}>
+                        {record?.present ? 'Present' : 'Absent'}
                       </span>
                     </label>
 
-                    <input
-                      type="text"
-                      placeholder="Notes (optional)"
-                      value={record.notes}
-                      onChange={(e) =>
-                        handleAttendanceChange(record.studentId, 'notes', e.target.value)
-                      }
-                      className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-slate-500 focus:outline-none"
+                    <Controller
+                      name={`attendanceData.${index}.notes`}
+                      control={control}
+                      render={({ field }) => (
+                        <input
+                          type="text"
+                          placeholder="Notes (optional)"
+                          value={field.value}
+                          onChange={(e) => {
+                            field.onChange(e.target.value);
+                            update(index, { ...record, notes: e.target.value });
+                          }}
+                          className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-slate-500 focus:outline-none"
+                        />
+                      )}
                     />
                   </div>
                 </div>
@@ -166,7 +193,7 @@ const AttendanceForm = ({
         <div className="mt-5">
           <button
             type="submit"
-            disabled={markAttendanceMutation.isPending || attendanceData.length === 0}
+            disabled={markAttendanceMutation.isPending || fields.length === 0}
             className="inline-flex h-10 items-center rounded-md bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
           >
             {markAttendanceMutation.isPending
