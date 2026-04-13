@@ -123,10 +123,10 @@ export default function Students() {
     if (!cls?.videoLink) return false;
 
     const status = normalizeStatus(cls.status);
-    if (status === "cancelled") return false;
+    if (status === "cancelled" || status === "completed") return false;
 
     const cutoffTime = getJoinCutoffTime(cls);
-    if (!cutoffTime) return status !== "completed";
+    if (!cutoffTime) return true;
 
     return nowTs <= cutoffTime.getTime();
   };

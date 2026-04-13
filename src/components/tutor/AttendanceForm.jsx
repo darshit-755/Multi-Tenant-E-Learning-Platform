@@ -142,26 +142,41 @@ const AttendanceForm = ({
                   </div>
 
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
-                      <Controller
-                        name={`attendanceData.${index}.present`}
-                        control={control}
-                        render={({ field }) => (
-                          <input
-                            type="checkbox"
-                            checked={field.value}
-                            onChange={(e) => {
-                              field.onChange(e.target.checked);
-                              update(index, { ...record, present: e.target.checked });
-                            }}
-                            className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                          />
-                        )}
-                      />
-                      <span className={record?.present ? 'text-emerald-600' : 'text-rose-600'}>
-                        {record?.present ? 'Present' : 'Absent'}
-                      </span>
-                    </label>
+                    <Controller
+                      name={`attendanceData.${index}.present`}
+                      control={control}
+                      render={({ field }) => (
+                        <div className="flex items-center gap-4">
+                          <label className="inline-flex items-center gap-2 text-sm font-medium text-emerald-700">
+                            <input
+                              type="checkbox"
+                              checked={field.value === true}
+                              onChange={(e) => {
+                                const nextValue = e.target.checked ? true : false;
+                                field.onChange(nextValue);
+                                update(index, { ...record, present: nextValue });
+                              }}
+                              className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                            />
+                            Present
+                          </label>
+
+                          <label className="inline-flex items-center gap-2 text-sm font-medium text-rose-700">
+                            <input
+                              type="checkbox"
+                              checked={field.value === false}
+                              onChange={(e) => {
+                                const nextValue = e.target.checked ? false : true;
+                                field.onChange(nextValue);
+                                update(index, { ...record, present: nextValue });
+                              }}
+                              className="h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
+                            />
+                            Absent
+                          </label>
+                        </div>
+                      )}
+                    />
 
                     <Controller
                       name={`attendanceData.${index}.notes`}

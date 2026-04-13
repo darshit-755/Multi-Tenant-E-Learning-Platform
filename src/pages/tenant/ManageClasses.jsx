@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
@@ -56,6 +56,12 @@ export default function ManageClasses() {
 
   const [editingClass, setEditingClass] = useState(null);
   const [deleteClassId, setDeleteClassId] = useState(null);
+  const [nowTs, setNowTs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timerId = setInterval(() => setNowTs(Date.now()), 30 * 1000);
+    return () => clearInterval(timerId);
+  }, []);
 
   const isEditMode = Boolean(editingClass);
 
@@ -86,6 +92,60 @@ export default function ManageClasses() {
   const tutors = tutorsData?.tutors || [];
   const subjects = subjectsData?.subjects || [];
   const batches = batchesData?.batches || [];
+
+  const normalizeStatus = (status) => String(status || "").trim().toLowerCase();
+
+  const parseClassStartDateTime = (cls) => {
+    if (!cls?.date || !cls?.startTime) return null;
+
+    const datePart = String(cls.date).split("T")[0];
+    const baseDate = new Date(`${datePart}T00:00:00`);
+    if (Number.isNaN(baseDate.getTime())) return null;
+
+    const timeMatch = String(cls.startTime)
+      .trim()
+      .match(/^(\d{1,2}):(\d{2})(?:\s*([AaPp][Mm]))?$/);
+    if (!timeMatch) return null;
+
+    let hours = Number(timeMatch[1]);
+    const minutes = Number(timeMatch[2]);
+    const meridiem = timeMatch[3]?.toUpperCase();
+
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+
+    if (meridiem) {
+      if (hours === 12) hours = 0;
+      if (meridiem === "PM") hours += 12;
+    }
+
+    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+
+    const startDateTime = new Date(baseDate);
+    startDateTime.setHours(hours, minutes, 0, 0);
+    return startDateTime;
+  };
+
+  const getJoinCutoffTime = (cls) => {
+    const startDateTime = parseClassStartDateTime(cls);
+    if (!startDateTime) return null;
+
+    const duration = Number(cls.duration);
+    const durationMinutes = Number.isFinite(duration) && duration > 0 ? duration : 0;
+    const graceMinutes = 15;
+    return new Date(startDateTime.getTime() + (durationMinutes + graceMinutes) * 60 * 1000);
+  };
+
+  const canShowOpenLink = (cls) => {
+    if (!cls?.videoLink) return false;
+
+    const status = normalizeStatus(cls.status);
+    if (status === "cancelled" || status === "completed") return false;
+
+    const cutoffTime = getJoinCutoffTime(cls);
+    if (!cutoffTime) return true;
+
+    return nowTs <= cutoffTime.getTime();
+  };
 
   const syncTeacherFromBatch = (batchId) => {
     const selectedBatch = batches.find((batch) => batch._id === batchId);
@@ -375,7 +435,7 @@ export default function ManageClasses() {
                               <DropdownMenuItem onClick={() => handleEdit(cls)}>
                                 Edit
                               </DropdownMenuItem>
-                              {cls.videoLink && cls.status !== "completed" && (
+                              {canShowOpenLink(cls) && (
                                 <DropdownMenuItem
                                   onClick={() =>
                                     window.open(cls.videoLink, "_blank")

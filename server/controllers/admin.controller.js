@@ -11,6 +11,7 @@ import { MAIL_TYPES } from "../services/mail/mail.constant.js";
  * Get all pending tenant requests
  */
 const dummyEmail = "voltix755@gmail.com"
+
 export const getPendingTenants = async (req, res) => {
   try {
     const tenants = await Tenant.find({ status: "inactive" })
