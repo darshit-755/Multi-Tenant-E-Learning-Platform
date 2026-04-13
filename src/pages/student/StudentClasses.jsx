@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -19,6 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
+import { trackMeetingAttendanceEvent } from "@/services/attendance.api";
 
 export default function StudentClasses() {
   const { data: classesData, isLoading } = useGetMyClasses();
@@ -33,6 +35,93 @@ export default function StudentClasses() {
     schedule: ALL_VALUE,
     status: ALL_VALUE,
   });
+  const leaveTrackerRef = useRef({});
+
+  useEffect(() => {
+    return () => {
+      Object.values(leaveTrackerRef.current).forEach((timerId) => {
+        window.clearInterval(timerId);
+      });
+      leaveTrackerRef.current = {};
+    };
+  }, []);
+
+  const getProviderForClass = (cls) => {
+    if (["zoom", "gmeet", "manual"].includes(cls?.videoProvider)) {
+      return cls.videoProvider;
+    }
+    if (cls?.videoLink?.includes("zoom.us")) return "zoom";
+    if (cls?.videoLink?.includes("meet.google.com")) return "gmeet";
+    return "manual";
+  };
+
+  const safeTrackEvent = async ({ classId, action, provider }) => {
+    try {
+      await trackMeetingAttendanceEvent({
+        classId,
+        action,
+        provider,
+        occurredAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error(`Failed to track ${action} event`, error);
+    }
+  };
+
+  const watchMeetingWindowClose = (classId, popupWindow, provider) => {
+    if (!popupWindow) return;
+
+    if (leaveTrackerRef.current[classId]) {
+      window.clearInterval(leaveTrackerRef.current[classId]);
+    }
+
+    const timerId = window.setInterval(async () => {
+      if (popupWindow.closed) {
+        window.clearInterval(timerId);
+        delete leaveTrackerRef.current[classId];
+        await safeTrackEvent({
+          classId,
+          action: "leave",
+          provider,
+        });
+      }
+    }, 1500);
+
+    leaveTrackerRef.current[classId] = timerId;
+  };
+
+  const handleJoinClass = async (cls) => {
+    if (!cls?.videoLink) {
+      toast.error("Meeting link is missing");
+      return;
+    }
+
+    const provider = getProviderForClass(cls);
+
+    // Open a blank tab first to reduce popup blocking by browsers, then navigate.
+    const popupWindow = window.open("about:blank", "_blank");
+
+    if (!popupWindow) {
+      await safeTrackEvent({
+        classId: cls._id,
+        action: "join",
+        provider,
+      });
+      toast.info("Popup blocked. Opening class in this tab.");
+      window.location.assign(cls.videoLink);
+      return;
+    }
+
+    popupWindow.opener = null;
+    popupWindow.location.href = cls.videoLink;
+
+    await safeTrackEvent({
+      classId: cls._id,
+      action: "join",
+      provider,
+    });
+    watchMeetingWindowClose(cls._id, popupWindow, provider);
+  };
 
   // Get unique values for dropdowns
   const uniqueSubjects = [
@@ -317,9 +406,7 @@ export default function StudentClasses() {
                               <Button
                                 size="sm"
                                 className="bg-green-600 hover:bg-green-700 text-white"
-                                onClick={() =>
-                                  window.open(cls.videoLink, "_blank")
-                                }
+                                onClick={() => handleJoinClass(cls)}
                               >
                                 Join
                               </Button>

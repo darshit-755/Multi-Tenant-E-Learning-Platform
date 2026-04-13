@@ -3,6 +3,7 @@ import { Class } from "../models/class.model.js";
 import { Batch } from "../models/batch.model.js";
 import { Student } from "../models/student.model.js";
 import { Tutor } from "../models/tutor.model.js";
+import { recordAttendanceEvent } from "../services/attendanceTracking.service.js";
 
 const buildStudentAttendancePayload = async (studentId, tenantId) => {
   const student = await Student.findOne({ _id: studentId, tenantId }).populate({
@@ -49,6 +50,11 @@ const buildStudentAttendancePayload = async (studentId, tenantId) => {
       present: record.present,
       markedAt: record.markedAt,
       notes: record.notes,
+      trackingProvider: record.trackingProvider,
+      firstJoinAt: record.firstJoinAt,
+      lastJoinAt: record.lastJoinAt,
+      lastLeaveAt: record.lastLeaveAt,
+      totalDurationMinutes: record.totalDurationMinutes || 0,
     }));
 
   return {
@@ -198,6 +204,11 @@ export const getAttendanceByClass = async (req, res) => {
         present: record.present,
         markedAt: record.markedAt,
         notes: record.notes,
+        trackingProvider: record.trackingProvider,
+        firstJoinAt: record.firstJoinAt,
+        lastJoinAt: record.lastJoinAt,
+        lastLeaveAt: record.lastLeaveAt,
+        totalDurationMinutes: record.totalDurationMinutes,
       };
     });
 
@@ -211,6 +222,13 @@ export const getAttendanceByClass = async (req, res) => {
         present: attendanceRecord ? attendanceRecord.present : null,
         markedAt: attendanceRecord ? attendanceRecord.markedAt : null,
         notes: attendanceRecord ? attendanceRecord.notes : "",
+        trackingProvider: attendanceRecord ? attendanceRecord.trackingProvider : "manual",
+        firstJoinAt: attendanceRecord ? attendanceRecord.firstJoinAt : null,
+        lastJoinAt: attendanceRecord ? attendanceRecord.lastJoinAt : null,
+        lastLeaveAt: attendanceRecord ? attendanceRecord.lastLeaveAt : null,
+        totalDurationMinutes: attendanceRecord
+          ? attendanceRecord.totalDurationMinutes || 0
+          : 0,
         _id: attendanceRecord ? attendanceRecord._id : null,
       };
     });
@@ -273,6 +291,86 @@ export const getMyAttendance = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       message: "Error fetching student attendance",
+      error: error.message,
+    });
+  }
+};
+
+// Track student join/leave events for online classes
+export const trackMeetingAttendance = async (req, res) => {
+  try {
+    const { classId, action, provider, occurredAt } = req.body;
+    const tenantId = req.user.tenantId;
+    const userId = req.user.id || req.user._id;
+
+    if (!classId || !action) {
+      return res.status(400).json({
+        message: "classId and action are required",
+      });
+    }
+
+    if (!["join", "leave"].includes(action)) {
+      return res.status(400).json({
+        message: "action must be join or leave",
+      });
+    }
+
+    const student = await Student.findOne({ userId, tenantId }).select("_id");
+    if (!student) {
+      return res.status(404).json({ message: "Student profile not found" });
+    }
+
+    const classRecord = await Class.findOne({ _id: classId, tenantId }).select(
+      "_id tenantId batchId teacherId videoProvider"
+    );
+    if (!classRecord) {
+      return res.status(404).json({ message: "Class not found" });
+    }
+
+    const batch = await Batch.findById(classRecord.batchId).select("studentIds");
+    if (!batch) {
+      return res.status(404).json({ message: "Batch not found" });
+    }
+
+    const studentExists = batch.studentIds.some(
+      (id) => String(id) === String(student._id)
+    );
+    if (!studentExists) {
+      return res.status(403).json({
+        message: "You are not enrolled in this class",
+      });
+    }
+
+    const attendance = await recordAttendanceEvent({
+      tenantId,
+      classId: classRecord._id,
+      studentId: student._id,
+      tutorId: classRecord.teacherId,
+      provider: provider || classRecord.videoProvider || "manual",
+      action,
+      occurredAt,
+      source: "client",
+    });
+
+    return res.status(200).json({
+      message: `Attendance ${action} event tracked`,
+      attendance: {
+        _id: attendance._id,
+        classId: attendance.classId,
+        studentId: attendance.studentId,
+        present: attendance.present,
+        joinCount: attendance.joinCount,
+        leaveCount: attendance.leaveCount,
+        firstJoinAt: attendance.firstJoinAt,
+        lastJoinAt: attendance.lastJoinAt,
+        lastLeaveAt: attendance.lastLeaveAt,
+        totalDurationMinutes: attendance.totalDurationMinutes || 0,
+        trackingProvider: attendance.trackingProvider,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error tracking attendance event",
       error: error.message,
     });
   }

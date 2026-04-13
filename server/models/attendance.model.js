@@ -39,6 +39,69 @@ const attendanceSchema = new Schema(
       type: String,
       trim: true,
     },
+    presenceSource: {
+      type: String,
+      enum: ["manual", "system", "hybrid"],
+      default: "manual",
+    },
+    trackingProvider: {
+      type: String,
+      enum: ["manual", "gmeet", "zoom"],
+      default: "manual",
+    },
+    firstJoinAt: {
+      type: Date,
+      default: null,
+    },
+    lastJoinAt: {
+      type: Date,
+      default: null,
+    },
+    lastLeaveAt: {
+      type: Date,
+      default: null,
+    },
+    lastEventAt: {
+      type: Date,
+      default: null,
+    },
+    joinCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    leaveCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    totalDurationMinutes: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    trackingEvents: [
+      {
+        action: {
+          type: String,
+          enum: ["join", "leave"],
+          required: true,
+        },
+        at: {
+          type: Date,
+          required: true,
+        },
+        source: {
+          type: String,
+          enum: ["client", "webhook", "system", "manual"],
+          default: "system",
+        },
+        meta: {
+          type: Schema.Types.Mixed,
+          default: {},
+        },
+      },
+    ],
   },
   { timestamps: true }
 );

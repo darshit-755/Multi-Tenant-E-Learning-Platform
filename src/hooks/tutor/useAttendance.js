@@ -17,6 +17,7 @@ export const useMarkAttendance = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['class-attendance', variables.classId] });
       queryClient.invalidateQueries({ queryKey: ['tutor-classes'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance-summary'] });
     },
   });
 };

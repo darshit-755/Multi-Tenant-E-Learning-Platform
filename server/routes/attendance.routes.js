@@ -6,6 +6,7 @@ import {
   getMyAttendance,
   getAttendanceSummary,
   updateAttendance,
+  trackMeetingAttendance,
 } from "../controllers/attendance.controller.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 import { authorizeRoles } from "../middlewares/role.middleware.js";
@@ -18,6 +19,13 @@ router.post(
   authMiddleware,
   authorizeRoles("tutor"),
   markAttendance
+);
+
+router.post(
+  "/track",
+  authMiddleware,
+  authorizeRoles("student"),
+  trackMeetingAttendance
 );
 
 // Get attendance for a class (accessible to tenant, tutor)

@@ -48,6 +48,25 @@ export const getAttendanceSummary = async (batchId) => {
   }
 };
 
+export const trackMeetingAttendanceEvent = async ({
+  classId,
+  action,
+  provider,
+  occurredAt,
+}) => {
+  try {
+    const response = await API.post("/attendance/track", {
+      classId,
+      action,
+      provider,
+      occurredAt,
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
 export const updateAttendanceRecord = async (attendanceId, present, notes) => {
   try {
     const response = await API.put(`/attendance/${attendanceId}`, {
