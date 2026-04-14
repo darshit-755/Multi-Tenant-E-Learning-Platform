@@ -1,5 +1,6 @@
 import { useForm } from "react-hook-form";
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +48,8 @@ export default function AddTutor() {
   const [editingTutor, setEditingTutor] = useState(null);
   const [deleteTutorId, setDeleteTutorId] = useState(null);
   const [selectedSubject, setSelectedSubject] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const isEditMode = Boolean(editingTutor);
 
   const {
@@ -54,6 +57,7 @@ export default function AddTutor() {
     handleSubmit,
     reset,
     setValue,
+    getValues,
     formState: { errors },
   } = useForm();
   register("subject", { required: "Subject is required" });
@@ -99,8 +103,10 @@ export default function AddTutor() {
       return;
     }
 
+    const { confirmPassword, ...payload } = data;
+
     const res = await createTutor({
-      ...data,
+      ...payload,
       subjects: [selectedSubject],
     });
     if (res) {
@@ -189,24 +195,65 @@ export default function AddTutor() {
             {/* Password */}
             <div>
               <Label>Password</Label>
-              <Input
-                type="password"
-                placeholder="Minimum 6 characters"
-                className="mt-1"
-                {...register("password", {
-                  required: isEditMode ? false : "Password is required",
-                  minLength: {
-                    value: 6,
-                    message: "Minimum 6 characters",
-                  },
-                })}
-              />
+              <div className="relative mt-1">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Minimum 6 characters"
+                  className="pr-10"
+                  {...register("password", {
+                    required: isEditMode ? false : "Password is required",
+                    minLength: {
+                      value: 6,
+                      message: "Minimum 6 characters",
+                    },
+                  })}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 hover:text-slate-700"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
               {errors.password && (
                 <p className="text-xs text-red-500 mt-1">
                   {errors.password.message}
                 </p>
               )}
             </div>
+
+            {!isEditMode && (
+              <div>
+                <Label>Confirm Password</Label>
+                <div className="relative mt-1">
+                  <Input
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Re-enter password"
+                    className="pr-10"
+                    {...register("confirmPassword", {
+                      required: "Confirm password is required",
+                      validate: (value) =>
+                        value === getValues("password") || "Passwords do not match",
+                    })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 hover:text-slate-700"
+                    aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                {errors.confirmPassword && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.confirmPassword.message}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Subjects */}
             <div>
