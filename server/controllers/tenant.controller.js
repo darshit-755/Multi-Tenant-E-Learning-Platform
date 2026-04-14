@@ -499,7 +499,8 @@ export const updateProfile = async (req, res) => {
     }
 
     if (req.file) {
-      user.profileImage = `/uploads/${req.file.filename}`;
+      const folder = req.file.destination.split(/[/\\]/).pop() || "profile";
+      user.profileImage = `/uploads/${folder}/${req.file.filename}`;
     }
 
     let tenantProfile = null;

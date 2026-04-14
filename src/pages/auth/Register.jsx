@@ -1,4 +1,4 @@
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { Link } from "react-router-dom";
 import { useRegister } from "@/hooks/auth/useAuthMutations";
 
@@ -19,15 +19,24 @@ export default function Register() {
     register,
     handleSubmit,
     reset,
-    watch,
+    control,
     formState: { errors },
   } = useForm();
 
   const registerMutation = useRegister();
-  const passwordValue = watch("password");
+  const passwordValue = useWatch({ control, name: "password" });
+  const passwordRules = {
+    hasMinLength: (passwordValue || "").length >= 6,
+    hasUppercase: /[A-Z]/.test(passwordValue || ""),
+    hasLowercase: /[a-z]/.test(passwordValue || ""),
+    hasNumber: /\d/.test(passwordValue || ""),
+    hasSpecial: /[^A-Za-z0-9]/.test(passwordValue || ""),
+  };
+  const shouldShowPasswordRules = Boolean(passwordValue);
 
   const onSubmit = (data) => {
-    const { confirmPassword, ...payload } = data;
+    const payload = { ...data };
+    delete payload.confirmPassword;
     registerMutation.mutate(payload, {
       onSuccess: () => {
         toast.success("Registration successful! Please wait for approval.");
@@ -125,6 +134,16 @@ export default function Register() {
                       value: 6,
                       message: "Password must be at least 6 characters",
                     },
+                    validate: {
+                      hasUppercase: (value) =>
+                        /[A-Z]/.test(value) || "Password must include at least one uppercase letter",
+                      hasLowercase: (value) =>
+                        /[a-z]/.test(value) || "Password must include at least one lowercase letter",
+                      hasNumber: (value) =>
+                        /\d/.test(value) || "Password must include at least one number",
+                      hasSpecial: (value) =>
+                        /[^A-Za-z0-9]/.test(value) || "Password must include at least one special character",
+                    },
                   })}
                 />
                 <button
@@ -138,6 +157,25 @@ export default function Register() {
               </div>
               {errors.password && (
                 <p className="text-red-500 text-sm">{errors.password.message}</p>
+              )}
+              {shouldShowPasswordRules && (
+                <ul className="text-xs space-y-1 text-slate-300">
+                  <li className={passwordRules.hasMinLength ? "text-emerald-400" : "text-red-400"}>
+                    At least 6 characters
+                  </li>
+                  <li className={passwordRules.hasUppercase ? "text-emerald-400" : "text-red-400"}>
+                    At least one uppercase letter
+                  </li>
+                  <li className={passwordRules.hasLowercase ? "text-emerald-400" : "text-red-400"}>
+                    At least one lowercase letter
+                  </li>
+                  <li className={passwordRules.hasNumber ? "text-emerald-400" : "text-red-400"}>
+                    At least one number
+                  </li>
+                  <li className={passwordRules.hasSpecial ? "text-emerald-400" : "text-red-400"}>
+                    At least one special character
+                  </li>
+                </ul>
               )}
             </div>
 

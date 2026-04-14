@@ -20,7 +20,10 @@ const buildScreenshotUrls = (req, files = []) => {
   if (!Array.isArray(files) || files.length === 0) return [];
   const baseUrl = `${req.protocol}://${req.get("host")}`;
 
-  return files.map((file) => `${baseUrl}/uploads/${path.basename(file.path)}`);
+  return files.map((file) => {
+    const folder = file.destination?.split(/[\\/]/).pop() || "doubt";
+    return `${baseUrl}/uploads/${folder}/${file.filename}`;
+  });
 };
 
 const getIdString = (value) => {
