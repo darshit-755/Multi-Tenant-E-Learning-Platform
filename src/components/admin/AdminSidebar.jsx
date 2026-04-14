@@ -1,9 +1,19 @@
 import { Link, useLocation } from "react-router-dom";
 import { LayoutDashboard, UserPlus, ClipboardList, Users, GraduationCap, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { getAllTenantsApi } from "@/services/admin.api";
 
 const AdminSidebarContent = () => {
   const location = useLocation();
+
+  const { data } = useQuery({
+    queryKey: ["all-tenants", "inactive-count"],
+    queryFn: () => getAllTenantsApi(1, 1),
+    staleTime: 30000,
+  });
+
+  const inactiveTenantsCount = data?.data?.inactiveTenants ?? 0;
 
   const basePath = `/admin`;
 
@@ -33,6 +43,9 @@ const AdminSidebarContent = () => {
       >
         <ClipboardList size={18} />
         Tenants
+        <span className="ml-auto min-w-6 rounded-full bg-amber-500/20 px-2 py-0.5 text-center text-xs font-semibold text-amber-300">
+          {inactiveTenantsCount}
+        </span>
       </Link>
 
       <Link

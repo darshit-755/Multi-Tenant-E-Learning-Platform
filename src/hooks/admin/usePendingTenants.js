@@ -25,6 +25,7 @@ export const usePendingTenants = (currentPage) => {
     onSuccess: () => {
       toast.success("Tenant approved successfully");
       queryClient.invalidateQueries(["all-tenants"]);
+      queryClient.invalidateQueries(["all-tenants", "inactive-count"]);
     },
     onError: (error) => {
       toast.error(error.response?.data?.message || "Failed to approve tenant");
@@ -35,6 +36,7 @@ export const usePendingTenants = (currentPage) => {
     onSuccess: () => {
       toast.success("Tenant marked as inactive successfully");
       queryClient.invalidateQueries(["all-tenants"]);
+      queryClient.invalidateQueries(["all-tenants", "inactive-count"]);
     },
     onError: (error) => {
       toast.error(error.response?.data?.message || "Failed to mark tenant as inactive");
@@ -47,6 +49,7 @@ export const usePendingTenants = (currentPage) => {
     onSuccess: () => {
       toast.success("Tenant blocked successfully");
       queryClient.invalidateQueries(["all-tenants"]);
+      queryClient.invalidateQueries(["all-tenants", "inactive-count"]);
     },
     onError: (error) => {
       toast.error(error.response?.data?.message || "Failed to block tenant");

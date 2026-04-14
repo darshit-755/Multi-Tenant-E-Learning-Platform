@@ -158,7 +158,7 @@ export default function ClassForm({
         </div>
 
         <div>
-          <Label>Duration</Label>
+          <Label>Duration ( Minutes )</Label>
           <Input
             type="number"
             {...register("duration", { required: "Duration is required" })}
