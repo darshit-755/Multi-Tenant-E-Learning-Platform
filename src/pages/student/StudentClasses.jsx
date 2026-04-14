@@ -21,10 +21,12 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { trackMeetingAttendanceEvent } from "@/services/attendance.api";
+import { useNavigate } from "react-router-dom";
 
 export default function StudentClasses() {
   const { data: classesData, isLoading } = useGetMyClasses();
   const classes = classesData?.classes || [];
+  const navigate = useNavigate();
 
   const ALL_VALUE = "__all";
 
@@ -436,6 +438,7 @@ export default function StudentClasses() {
                       <TableHead>Tutor</TableHead>
                       <TableHead>Schedule</TableHead>
                       <TableHead>Meeting</TableHead>
+                      <TableHead>Doubts</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -486,6 +489,15 @@ export default function StudentClasses() {
                             )}
                           </TableCell>
                           <TableCell>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => navigate(`/student/class-doubts/${cls._id}`)}
+                            >
+                              Raise Doubt
+                            </Button>
+                          </TableCell>
+                          <TableCell>
                             <span
                               className={`px-3 py-1 text-xs rounded-full font-medium ${
                                 isCompleted
@@ -507,7 +519,7 @@ export default function StudentClasses() {
                       })
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-8">
+                        <TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-8">
                           {classes.length === 0
                             ? "No classes found"
                             : "No classes match your filters"}

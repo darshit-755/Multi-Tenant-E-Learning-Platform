@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, BookOpen, Users } from "lucide-react";
+import { LayoutDashboard, BookOpen, Users, MessageCircleQuestion } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const StudentSidebarContent = () => {
@@ -27,6 +27,11 @@ const StudentSidebarContent = () => {
       label: "My Attendance",
       href: `${basePath}/attendance`,
       icon: BookOpen,
+    },
+    {
+      label: "Doubts",
+      href: `${basePath}/doubts`,
+      icon: MessageCircleQuestion,
     },
   ];
 

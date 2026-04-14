@@ -32,6 +32,7 @@ import TutorProfile from "@/pages/tutor/Profile";
 import TutorMyClasses from "@/pages/tutor/MyClasses";
 import TutorBatches from "@/pages/tutor/Batches";
 import TutorStudents from "@/pages/tutor/Students";
+import TutorAttendancePage from "@/pages/tutor/TutorAttendancePage";
 import TakeAttendance from "@/pages/tutor/TakeAttendance";
 import TutorAttendanceReport from "@/pages/tutor/AttendanceReport";
 
@@ -42,6 +43,8 @@ import StudentProfile from "@/pages/student/Profile";
 import StudentClasses from "@/pages/student/StudentClasses";
 import StudentBatches from "@/pages/student/StudentBatches";
 import StudentAttendancePage from "@/pages/student/StudentAttendancePage";
+import ClassDoubtsPage from "@/pages/common/ClassDoubtsPage";
+import DoubtsHubPage from "@/pages/common/DoubtsHubPage";
 
 import Register from "@/pages/auth/Register";
 import Login from "@/pages/auth/Login";
@@ -98,10 +101,13 @@ function App() {
           <Route element={<TutorLayout />}>
             <Route path="/tutor/dashboard" element={<TutorDashboard />} />
             <Route path="/tutor/my-classes" element={<TutorMyClasses />} />
+            <Route path="/tutor/attendance" element={<TutorAttendancePage />} />
             <Route path="/tutor/take-attendance/:classId" element={<TakeAttendance />} />
             <Route path="/tutor/batches" element={<TutorBatches />} />
             <Route path="/tutor/students" element={<TutorStudents />} />
             <Route path="/tutor/attendance-report" element={<TutorAttendanceReport />} />
+            <Route path="/tutor/doubts" element={<DoubtsHubPage role="tutor" />} />
+            <Route path="/tutor/class-doubts/:classId" element={<ClassDoubtsPage role="tutor" />} />
             <Route path="/tutor/profile" element={<TutorProfile />} />
           </Route>
         </Route>
@@ -116,6 +122,8 @@ function App() {
             <Route path="/student/classes" element={<StudentClasses />} />
             <Route path="/student/batches" element={<StudentBatches />} />
             <Route path="/student/attendance" element={<StudentAttendancePage />} />
+            <Route path="/student/doubts" element={<DoubtsHubPage role="student" />} />
+            <Route path="/student/class-doubts/:classId" element={<ClassDoubtsPage role="student" />} />
             <Route path="/student/profile" element={<StudentProfile />} />
           </Route>
         </Route>

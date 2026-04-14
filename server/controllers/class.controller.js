@@ -5,6 +5,7 @@ import { User } from "../models/user.model.js";
 import { Subject } from "../models/subject.model.js";
 import { Batch } from "../models/batch.model.js";
 import { Attendance } from "../models/attendance.model.js";
+import { ClassDoubt } from "../models/classDoubt.model.js";
 import { sendTenantMail } from "../services/mail/mail.service.js";
 import { MAIL_TYPES } from "../services/mail/mail.constant.js";
 
@@ -373,9 +374,29 @@ export const getClassesByTutor = async (req, res) => {
     });
     const attendedClassSet = new Set(attendedClassIds.map((id) => String(id)));
 
+    const doubtsByClass = await ClassDoubt.aggregate([
+      {
+        $match: {
+          tenantId: tutorProfile.tenantId,
+          classId: { $in: classIds },
+        },
+      },
+      {
+        $project: {
+          classId: 1,
+          doubtCount: { $size: "$messages" },
+        },
+      },
+    ]);
+    const doubtCountMap = new Map(
+      doubtsByClass.map((item) => [String(item.classId), Number(item.doubtCount) || 0])
+    );
+
     const classesWithAttendance = classes.map((classDoc) => ({
       ...classDoc.toObject(),
       hasAttendance: attendedClassSet.has(String(classDoc._id)),
+      doubtCount: doubtCountMap.get(String(classDoc._id)) || 0,
+      hasDoubts: (doubtCountMap.get(String(classDoc._id)) || 0) > 0,
     }));
 
     return res.status(200).json({

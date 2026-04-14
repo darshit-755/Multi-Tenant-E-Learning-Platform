@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, BookOpen, Users, BarChart3 } from "lucide-react";
+import { LayoutDashboard, BookOpen, Users, BarChart3, MessageCircleQuestion } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TutorSidebarContent = () => {
@@ -63,17 +63,20 @@ const TutorSidebarContent = () => {
       </Link>
 
       <Link
-        to={`${basePath}/my-classes`}
+        to={`${basePath}/attendance`}
         className={cn(
           "flex items-center gap-2 px-3 py-2 rounded-md transition-colors",
           "text-slate-300 hover:bg-slate-800 hover:text-white",
-          location.pathname.includes(`${basePath}/take-attendance`) &&
+          (location.pathname === `${basePath}/attendance` ||
+            location.pathname.includes(`${basePath}/take-attendance`)) &&
           "bg-slate-800 text-white"
         )}
       >
         <BookOpen size={18} />
         Take Attendance
       </Link>
+
+      
 
       <Link
         to={`${basePath}/attendance-report`}
@@ -86,6 +89,19 @@ const TutorSidebarContent = () => {
       >
         <BarChart3 size={18} />
         Attendance Report
+      </Link>
+
+      <Link
+        to={`${basePath}/doubts`}
+        className={cn(
+          "flex items-center gap-2 px-3 py-2 rounded-md transition-colors",
+          "text-slate-300 hover:bg-slate-800 hover:text-white",
+          location.pathname === `${basePath}/doubts` &&
+          "bg-slate-800 text-white"
+        )}
+      >
+        <MessageCircleQuestion size={18} />
+        Doubts
       </Link>
 
     </nav>

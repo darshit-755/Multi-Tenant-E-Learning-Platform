@@ -34,7 +34,7 @@ const TakeAttendance = () => {
   const handleAttendanceSubmit = () => {
     // Optionally redirect or show success message
     
-      navigate('/tutor/my-classes');
+      navigate('/tutor/attendance');
     
   };
 
@@ -51,7 +51,7 @@ const TakeAttendance = () => {
       <div className="space-y-4 rounded-xl border border-rose-200 bg-rose-50 p-6">
         <div className="text-sm font-medium text-rose-700">{error}</div>
         <button
-          onClick={() => navigate('/tutor/my-classes')}
+          onClick={() => navigate('/tutor/attendance')}
           className="inline-flex h-9 items-center rounded-md bg-slate-900 px-3 text-sm font-medium text-white hover:bg-slate-800"
         >
           Back to Classes
@@ -67,10 +67,10 @@ const TakeAttendance = () => {
           {isUpdateMode ? 'Update Attendance' : 'Take Attendance'}
         </h1>
         <button 
-          onClick={() => navigate('/tutor/my-classes')}
+          onClick={() => navigate('/tutor/attendance')}
           className="inline-flex h-9 items-center rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
         >
-          Back to Classes
+          Back to Attendance
         </button>
       </div>
 
