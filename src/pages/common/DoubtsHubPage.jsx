@@ -364,7 +364,7 @@ export default function DoubtsHubPage({ role = "student" }) {
                           variant="outline"
                           onClick={() => navigate(`${basePath}/class-doubts/${cls._id}`)}
                         >
-                          View Doubts
+                          {role === "student" ? "Raise Doubt" : "View Doubts"}
                         </Button>
                       </TableCell>
                     </TableRow>

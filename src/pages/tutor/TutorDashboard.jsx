@@ -244,7 +244,7 @@ const TutorDashboard = () => {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle>Latest 5 Class Doubts</CardTitle>
+          <CardTitle>Latest Class Doubts</CardTitle>
           <Button variant="outline" size="sm" onClick={() => navigate("/tutor/doubts")}>
             View All
           </Button>
