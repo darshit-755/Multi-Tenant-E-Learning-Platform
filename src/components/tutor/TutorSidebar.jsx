@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, BookOpen, Users, BarChart3, MessageCircleQuestion } from "lucide-react";
+import { LayoutDashboard, BookOpen, Users, BarChart3, MessageCircleQuestion, NotebookPen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TutorSidebarContent = () => {
@@ -89,6 +89,19 @@ const TutorSidebarContent = () => {
       >
         <BarChart3 size={18} />
         Attendance Report
+      </Link>
+
+      <Link
+        to={`${basePath}/notes`}
+        className={cn(
+          "flex items-center gap-2 px-3 py-2 rounded-md transition-colors",
+          "text-slate-300 hover:bg-slate-800 hover:text-white",
+          location.pathname === `${basePath}/notes` &&
+          "bg-slate-800 text-white"
+        )}
+      >
+        <NotebookPen size={18} />
+        Notes
       </Link>
 
       <Link

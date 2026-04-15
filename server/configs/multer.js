@@ -20,6 +20,10 @@ const getUploadFolder = (req, file) => {
     return "doubt";
   }
 
+  if (file.fieldname === "notePdfs") {
+    return "notes";
+  }
+
   if (file.fieldname === "profileImage") {
     return toSafeFolderName(req.user?.role, "profile");
   }
@@ -45,23 +49,40 @@ const storage = multer.diskStorage({
   },
 });
 
-// file filter (images only)
+// file filter
 const fileFilter = (req, file, cb) => {
-  if (
+  const isImage =
     file.mimetype === "image/jpeg" ||
     file.mimetype === "image/png" ||
-    file.mimetype === "image/jpg"
-  ) {
-    cb(null, true);
-  } else {
+    file.mimetype === "image/jpg";
+
+  if (file.fieldname === "screenshots" || file.fieldname === "profileImage") {
+    if (isImage) {
+      cb(null, true);
+      return;
+    }
+
     cb(new Error("Only image files allowed"), false);
+    return;
   }
+
+  if (file.fieldname === "notePdfs") {
+    if (file.mimetype === "application/pdf") {
+      cb(null, true);
+      return;
+    }
+
+    cb(new Error("Only PDF files allowed"), false);
+    return;
+  }
+
+  cb(new Error("Unsupported file field"), false);
 };
 
 export const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 2 * 1024 * 1024, // 2MB
+    fileSize: 10 * 1024 * 1024, // 10MB
   },
 });

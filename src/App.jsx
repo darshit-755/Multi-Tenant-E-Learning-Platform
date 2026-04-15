@@ -35,6 +35,7 @@ import TutorStudents from "@/pages/tutor/Students";
 import TutorAttendancePage from "@/pages/tutor/TutorAttendancePage";
 import TakeAttendance from "@/pages/tutor/TakeAttendance";
 import TutorAttendanceReport from "@/pages/tutor/AttendanceReport";
+import TutorNotesPage from "@/pages/tutor/Notes";
 
 //student pages
 import StudentLayout from "@/layouts/StudentLayout";
@@ -106,6 +107,7 @@ function App() {
             <Route path="/tutor/batches" element={<TutorBatches />} />
             <Route path="/tutor/students" element={<TutorStudents />} />
             <Route path="/tutor/attendance-report" element={<TutorAttendanceReport />} />
+            <Route path="/tutor/notes" element={<TutorNotesPage />} />
             <Route path="/tutor/doubts" element={<DoubtsHubPage role="tutor" />} />
             <Route path="/tutor/class-doubts/:classId" element={<ClassDoubtsPage role="tutor" />} />
             <Route path="/tutor/profile" element={<TutorProfile />} />

@@ -17,6 +17,7 @@ import classRoutes from "./routes/class.routes.js"
 import meetRoutes from "./routes/meet.routes.js"
 import attendanceRoutes from "./routes/attendance.routes.js"
 import classDoubtRoutes from "./routes/classDoubt.routes.js"
+import classNoteRoutes from "./routes/classNote.routes.js"
 
 config();
 dbConnect();
@@ -51,6 +52,7 @@ app.use("/api/class", classRoutes);
 app.use("/api/meet", meetRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/class-doubts", classDoubtRoutes);
+app.use("/api/class-notes", classNoteRoutes);
 
 app.listen(Port , ()=>{
     console.log(`Server is running on port ${Port}`)
