@@ -39,19 +39,22 @@ export const getAllTenants = async (req, res) => {
 
     const skip = (page - 1) * limit;
 
-    const totalTenants = await Tenant.countDocuments();
-
-    const tenants = await Tenant.find()
-      .populate("ownerUserId", "name email")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+    const [totalTenants, inactiveTenants, tenants] = await Promise.all([
+      Tenant.countDocuments(),
+      Tenant.countDocuments({ status: "inactive" }),
+      Tenant.find()
+        .populate("ownerUserId", "name email")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+    ]);
 
     return res.status(200).json({
       tenants,
       currentPage: page,
       totalPages: Math.ceil(totalTenants / limit),
       totalTenants,
+      inactiveTenants,
     });
   } catch (error) {
     console.error("Get All Tenants Error:", error);
