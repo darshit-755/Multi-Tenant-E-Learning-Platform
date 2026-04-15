@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Table,
   TableBody,
@@ -19,12 +20,35 @@ import {
 } from "@/services/classDoubt.api";
 import { toast } from "sonner";
 
-const messageBgByRole = {
-  student: "bg-blue-50 border-blue-200",
-  tutor: "bg-emerald-50 border-emerald-200",
+const normalizeRole = (role) => (role === "tutor" ? "tutor" : "student");
+
+const getUserId = (user) => String(user?._id || user?.id || "");
+
+const getMessageSenderId = (message) =>
+  String(message?.senderUserId?._id || message?.senderUserId || "");
+
+const getMessageSide = (message, currentUserId) =>
+  currentUserId && getMessageSenderId(message) === currentUserId ? "self" : "other";
+
+const messageAlignBySide = {
+  self: "justify-end",
+  other: "justify-start",
 };
 
-const normalizeRole = (role) => (role === "tutor" ? "tutor" : "student");
+const messageBubbleBySide = {
+  self: "bg-[#d9fdd3] text-slate-900 border-[#b8e2ac] shadow-sm",
+  other: "bg-white text-slate-900 border-slate-200 shadow-sm",
+};
+
+const messageMetaBySide = {
+  self: "text-slate-500",
+  other: "text-slate-500",
+};
+
+const getMessageLabel = (message, side) => {
+  if (side === "self") return "You";
+  return message?.senderUserId?.name || message?.senderRole || "Unknown";
+};
 
 export default function ClassDoubtsPage({
   role = "student",
@@ -35,7 +59,9 @@ export default function ClassDoubtsPage({
   const classId = classIdProp || classIdFromParams;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const currentRole = normalizeRole(role);
+  const currentUserId = useMemo(() => getUserId(user), [user]);
   const [text, setText] = useState("");
   const [files, setFiles] = useState([]);
 
@@ -187,7 +213,7 @@ export default function ClassDoubtsPage({
         <CardContent className="p-5 space-y-4">
           <h2 className="text-lg font-semibold text-slate-800">Conversation</h2>
 
-          <div className="max-h-96 overflow-y-auto space-y-3 border rounded-md p-3 bg-white">
+          <div className="max-h-96 overflow-y-auto space-y-3 border rounded-md p-3 bg-[#f0f2f5]">
             {messages.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 No doubts yet. Start the conversation.
@@ -195,43 +221,46 @@ export default function ClassDoubtsPage({
             ) : (
               messages.map((msg) => {
                 const senderRole = normalizeRole(msg?.senderRole);
+                const side = getMessageSide(msg, currentUserId);
                 return (
-                  <div
-                    key={msg._id}
-                    className={`border rounded-md p-3 ${messageBgByRole[senderRole]}`}
-                  >
-                    <div className="flex items-center justify-between gap-2 text-xs text-slate-600">
-                      <p className="font-semibold">
-                        {msg?.senderUserId?.name || "Unknown"} ({senderRole})
-                      </p>
-                      <p>
-                        {msg?.createdAt
-                          ? new Date(msg.createdAt).toLocaleString()
-                          : ""}
-                      </p>
-                    </div>
-
-                    {msg?.text ? <p className="text-sm mt-2 whitespace-pre-wrap">{msg.text}</p> : null}
-
-                    {Array.isArray(msg?.screenshots) && msg.screenshots.length > 0 ? (
-                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {msg.screenshots.map((imgUrl, idx) => (
-                          <a
-                            key={`${msg._id}-${idx}`}
-                            href={imgUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="block"
-                          >
-                            <img
-                              src={imgUrl}
-                              alt="doubt screenshot"
-                              className="rounded border w-full h-40 object-cover"
-                            />
-                          </a>
-                        ))}
+                  <div key={msg._id} className={`flex ${messageAlignBySide[side]}`}>
+                    <div
+                      className={`w-full max-w-[85%] border rounded-2xl p-3 ${messageBubbleBySide[side]}`}
+                    >
+                      <div className={`flex items-center justify-between gap-2 text-xs ${messageMetaBySide[side]}`}>
+                        <p className="font-semibold">
+                          {getMessageLabel(msg, side)}
+                          {side === "other" ? ` (${senderRole})` : ""}
+                        </p>
+                        <p className="shrink-0">
+                          {msg?.createdAt
+                            ? new Date(msg.createdAt).toLocaleString()
+                            : ""}
+                        </p>
                       </div>
-                    ) : null}
+
+                      {msg?.text ? <p className="text-sm mt-2 whitespace-pre-wrap">{msg.text}</p> : null}
+
+                      {Array.isArray(msg?.screenshots) && msg.screenshots.length > 0 ? (
+                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {msg.screenshots.map((imgUrl, idx) => (
+                            <a
+                              key={`${msg._id}-${idx}`}
+                              href={imgUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="block"
+                            >
+                              <img
+                                src={imgUrl}
+                                alt="doubt screenshot"
+                                className="rounded border w-full h-40 object-cover"
+                              />
+                            </a>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 );
               })
