@@ -385,17 +385,22 @@ export const getClassesByTutor = async (req, res) => {
         $project: {
           classId: 1,
           doubtCount: { $size: "$messages" },
+          lastDoubtAt: { $max: "$messages.createdAt" },
         },
       },
     ]);
     const doubtCountMap = new Map(
       doubtsByClass.map((item) => [String(item.classId), Number(item.doubtCount) || 0])
     );
+    const lastDoubtAtMap = new Map(
+      doubtsByClass.map((item) => [String(item.classId), item.lastDoubtAt || null])
+    );
 
     const classesWithAttendance = classes.map((classDoc) => ({
       ...classDoc.toObject(),
       hasAttendance: attendedClassSet.has(String(classDoc._id)),
       doubtCount: doubtCountMap.get(String(classDoc._id)) || 0,
+      lastDoubtAt: lastDoubtAtMap.get(String(classDoc._id)) || null,
       hasDoubts: (doubtCountMap.get(String(classDoc._id)) || 0) > 0,
     }));
 

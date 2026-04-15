@@ -119,6 +119,15 @@ const TutorDashboard = () => {
     })
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 
+  const latestDoubtClasses = classes
+    .filter((cls) => (Number(cls?.doubtCount) || 0) > 0)
+    .sort((a, b) => {
+      const aDate = new Date(a.lastDoubtAt || a.date || a.createdAt || 0).getTime();
+      const bDate = new Date(b.lastDoubtAt || b.date || b.createdAt || 0).getTime();
+      return bDate - aDate;
+    })
+    .slice(0, 5);
+
   // Selected day check
   const selectedDay = selectedDate ? normalizeDate(selectedDate) : null;
 
@@ -232,6 +241,70 @@ const TutorDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <CardTitle>Latest 5 Class Doubts</CardTitle>
+          <Button variant="outline" size="sm" onClick={() => navigate("/tutor/doubts")}>
+            View All
+          </Button>
+        </CardHeader>
+
+        <CardContent>
+          {latestDoubtClasses.length > 0 ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Topic</TableHead>
+                    <TableHead>Subject</TableHead>
+                    <TableHead>Batch</TableHead>
+                    <TableHead>Schedule</TableHead>
+                    <TableHead>Doubts</TableHead>
+                    <TableHead>Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+
+                <TableBody>
+                  {latestDoubtClasses.map((cls) => (
+                    <TableRow key={cls._id}>
+                      <TableCell className="font-medium">
+                        {cls.topic || "Class Session"}
+                      </TableCell>
+                      <TableCell>{cls.subjectId?.name || "-"}</TableCell>
+                      <TableCell>{cls.batchId?.name || "-"}</TableCell>
+                      <TableCell>
+                        <div className="text-xs">
+                          <div>{cls.date || "-"}</div>
+                          <div className="text-muted-foreground">
+                            {cls.startTime
+                              ? `${cls.startTime} (${cls.duration || 0} min)`
+                              : "-"}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{Number(cls?.doubtCount) || 0}</TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate(`/tutor/class-doubts/${cls._id}`)}
+                        >
+                          View Doubts
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No doubts found for your classes
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Dialog for selected date */}
       <Dialog open={openDialog} onOpenChange={setOpenDialog}>
