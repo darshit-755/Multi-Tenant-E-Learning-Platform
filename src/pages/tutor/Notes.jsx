@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,14 +33,30 @@ export default function TutorNotesPage() {
   const [selectedClass, setSelectedClass] = useState(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [pdfFiles, setPdfFiles] = useState([]);
   const [pdfPreview, setPdfPreview] = useState({
     open: false,
     url: "",
     name: "",
   });
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    setError,
+    clearErrors,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      title: "",
+      content: "",
+      notePdfs: null,
+    },
+  });
+
+  const watchedPdfFiles = watch("notePdfs");
+  const selectedPdfFiles = watchedPdfFiles ? Array.from(watchedPdfFiles) : [];
 
   const notesQueryKey = ["class-notes", selectedClass?._id];
 
@@ -63,9 +80,7 @@ export default function TutorNotesPage() {
       return responseData;
     },
     onSuccess: () => {
-      setTitle("");
-      setContent("");
-      setPdfFiles([]);
+      reset();
       queryClient.invalidateQueries({ queryKey: notesQueryKey });
       toast.success("Note added successfully");
       setIsAddDialogOpen(false);
@@ -77,9 +92,7 @@ export default function TutorNotesPage() {
 
   const openAddDialog = (cls) => {
     setSelectedClass(cls);
-    setTitle("");
-    setContent("");
-    setPdfFiles([]);
+    reset();
     setIsAddDialogOpen(true);
   };
 
@@ -97,30 +110,32 @@ export default function TutorNotesPage() {
     });
   };
 
-  const handlePdfChange = (event) => {
-    const selectedFiles = Array.from(event.target.files || []);
+  const onAddNoteSubmit = (values) => {
+    const title = String(values.title || "").trim();
+    const content = String(values.content || "").trim();
+    const files = values.notePdfs ? Array.from(values.notePdfs) : [];
 
-    const nonPdfFile = selectedFiles.find((file) => file.type !== "application/pdf");
-    if (nonPdfFile) {
-      toast.error("Only PDF files are allowed");
-      return;
-    }
-
-    setPdfFiles(selectedFiles);
-  };
-
-  const handleAddNote = (event) => {
-    event.preventDefault();
-
-    if (!content.trim() && pdfFiles.length === 0) {
+    if (!content && files.length === 0) {
       toast.error("Add note content or at least one PDF");
       return;
     }
 
+    const nonPdfFile = files.find((file) => file.type !== "application/pdf");
+    if (nonPdfFile) {
+      setError("notePdfs", {
+        type: "validate",
+        message: "Only PDF files are allowed",
+      });
+      toast.error("Only PDF files are allowed");
+      return;
+    }
+
+    clearErrors("notePdfs");
+
     const payload = new FormData();
-    payload.append("title", title.trim());
-    payload.append("content", content.trim());
-    pdfFiles.forEach((file) => payload.append("notePdfs", file));
+    payload.append("title", title);
+    payload.append("content", content);
+    files.forEach((file) => payload.append("notePdfs", file));
 
     addNoteMutation.mutate(payload);
   };
@@ -198,7 +213,15 @@ export default function TutorNotesPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+      <Dialog
+        open={isAddDialogOpen}
+        onOpenChange={(open) => {
+          setIsAddDialogOpen(open);
+          if (!open) {
+            reset();
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>Add Note</DialogTitle>
@@ -209,14 +232,13 @@ export default function TutorNotesPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleAddNote} className="space-y-4">
+          <form onSubmit={handleSubmit(onAddNoteSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="note-title">Title (optional)</Label>
               <Input
                 id="note-title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Key formulas"
+                {...register("title")}
               />
             </div>
 
@@ -225,9 +247,8 @@ export default function TutorNotesPage() {
               <textarea
                 id="note-content"
                 className="w-full min-h-32 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
                 placeholder="Write your class note here..."
+                {...register("content")}
               />
             </div>
 
@@ -238,12 +259,15 @@ export default function TutorNotesPage() {
                 type="file"
                 accept="application/pdf"
                 multiple
-                onChange={handlePdfChange}
+                {...register("notePdfs")}
               />
-              {pdfFiles.length > 0 ? (
+              {selectedPdfFiles.length > 0 ? (
                 <p className="text-xs text-muted-foreground">
-                  Selected: {pdfFiles.map((file) => file.name).join(", ")}
+                  Selected: {selectedPdfFiles.map((file) => file.name).join(", ")}
                 </p>
+              ) : null}
+              {errors.notePdfs?.message ? (
+                <p className="text-xs text-red-600">{errors.notePdfs.message}</p>
               ) : null}
             </div>
 
