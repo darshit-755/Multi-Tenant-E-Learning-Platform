@@ -9,7 +9,7 @@ const router = express.Router();
 router.get(
   "/:classId",
   authMiddleware,
-  authorizeRoles("tutor"),
+  authorizeRoles("tutor", "student"),
   getClassNotes
 );
 

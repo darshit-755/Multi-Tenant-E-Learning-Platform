@@ -10,6 +10,7 @@ import { Menu } from "lucide-react";
 import { AdminSidebarContent } from "./AdminSidebar";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { resolveMediaUrl } from "@/lib/media";
 
 const AdminHeader = () => {
   const navigate = useNavigate();
@@ -48,7 +49,7 @@ const AdminHeader = () => {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Avatar className="cursor-pointer">
-            <AvatarImage src={user?.profileImage ? `http://localhost:4000${user?.profileImage}` : "/avatar-holder.avif"} />
+            <AvatarImage src={resolveMediaUrl(user?.profileImage)} />
             <AvatarFallback>
               {user?.name?.charAt(0)?.toUpperCase() || "A"}
             </AvatarFallback>

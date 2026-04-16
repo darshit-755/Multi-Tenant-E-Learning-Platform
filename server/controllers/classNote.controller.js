@@ -1,6 +1,8 @@
 import { Class } from "../models/class.model.js";
 import { Tutor } from "../models/tutor.model.js";
 import { ClassNote } from "../models/classNote.model.js";
+import { Student } from "../models/student.model.js";
+import { Batch } from "../models/batch.model.js";
 
 const formatClassDate = (rawDate) => {
   if (!rawDate) return "-";
@@ -66,10 +68,69 @@ const validateTutorClassAccess = async (req, classId) => {
   };
 };
 
+const validateStudentClassAccess = async (req, classId) => {
+  const { id: userId, tenantId } = req.user;
+
+  const studentProfile = await Student.findOne({ userId, tenantId }).select("_id");
+  if (!studentProfile) {
+    return { error: { status: 404, message: "Student profile not found" } };
+  }
+
+  const classDoc = await Class.findOne({
+    _id: classId,
+    tenantId,
+  })
+    .populate("subjectId", "name")
+    .populate("batchId", "name studentIds")
+    .populate({
+      path: "teacherId",
+      populate: { path: "userId", select: "name" },
+    });
+
+  if (!classDoc) {
+    return { error: { status: 404, message: "Class not found" } };
+  }
+
+  const batchHasStudent =
+    Array.isArray(classDoc.batchId?.studentIds) &&
+    classDoc.batchId.studentIds.some(
+      (studentId) => String(studentId) === String(studentProfile._id)
+    );
+
+  if (!batchHasStudent) {
+    const studentBatch = await Batch.findOne({
+      tenantId,
+      _id: classDoc.batchId?._id,
+      studentIds: studentProfile._id,
+    }).select("_id");
+
+    if (!studentBatch) {
+      return { error: { status: 403, message: "Access denied" } };
+    }
+  }
+
+  return {
+    classInfo: {
+      _id: classDoc._id,
+      topic: classDoc.topic || "Class Session",
+      subject: classDoc.subjectId?.name || "-",
+      batch: classDoc.batchId?.name || "-",
+      tutor: classDoc.teacherId?.userId?.name || "-",
+      date: formatClassDate(classDoc.date),
+      startTime: classDoc.startTime || "-",
+      duration: classDoc.duration || 0,
+      status: classDoc.status || "scheduled",
+    },
+  };
+};
+
 export const getClassNotes = async (req, res) => {
   try {
     const { classId } = req.params;
-    const accessResult = await validateTutorClassAccess(req, classId);
+    const accessResult =
+      req.user.role === "student"
+        ? await validateStudentClassAccess(req, classId)
+        : await validateTutorClassAccess(req, classId);
 
     if (accessResult.error) {
       return res

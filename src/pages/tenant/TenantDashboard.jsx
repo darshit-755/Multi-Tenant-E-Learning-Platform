@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGetClasses } from "@/hooks/tenant/useGetClasses";
+import { useGetTutors } from "@/hooks/tenant/useGetTutors";
+import { useNavigate } from "react-router-dom";
 
 import { Calendar } from "@/components/ui/calendar";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 import {
   Table,
@@ -27,8 +30,13 @@ import { formatDateWithDay } from "@/utils/classUtils";
 const TenantDashboard = () => {
   const { user } = useAuth();
   const { data: classesData } = useGetClasses();
+  const { data: tutorsData, isLoading: isTutorsLoading } = useGetTutors();
+  const navigate = useNavigate();
 
   const classes = classesData?.classes || [];
+  const latestTutors = [...(tutorsData?.tutors || [])]
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 5);
 
   const [selectedDate, setSelectedDate] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
@@ -183,6 +191,77 @@ const TenantDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Latest 5 Added Tutors</CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/tenant/add-tutor")}
+          >
+            View All
+          </Button>
+        </CardHeader>
+
+        <CardContent>
+          {isTutorsLoading ? (
+            <p className="text-sm text-muted-foreground">Loading tutors...</p>
+          ) : (
+            <div className="rounded-md border overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Subjects</TableHead>
+                    <TableHead>Experience</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created At</TableHead>
+                  </TableRow>
+                </TableHeader>
+
+                <TableBody>
+                  {latestTutors.length > 0 ? (
+                    latestTutors.map((tutor) => (
+                      <TableRow key={tutor._id}>
+                        <TableCell>{tutor.name}</TableCell>
+                        <TableCell>{tutor.email}</TableCell>
+                        <TableCell>{tutor.subjects?.join(", ") || "-"}</TableCell>
+                        <TableCell>{tutor.experienceYears ?? "-"}</TableCell>
+                        <TableCell>{tutor.phone || "-"}</TableCell>
+                        <TableCell>
+                          <span
+                            className={`px-3 py-1 text-xs rounded-full font-medium ${
+                              tutor.status === "inactive"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-green-100 text-green-800"
+                            }`}
+                          >
+                            {tutor.status === "inactive" ? "Inactive" : "Active"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {tutor.createdAt
+                            ? new Date(tutor.createdAt).toLocaleDateString()
+                            : "-"}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-sm">
+                        No tutors found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Dialog for selected date */}
       <Dialog open={openDialog} onOpenChange={setOpenDialog}>

@@ -3,6 +3,12 @@ import { useUpdateProfile } from "@/hooks/tutor/useUpdateProfile";
 import { useGetProfile } from "@/hooks/tutor/useGetProfile";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { resolveMediaUrl } from "@/lib/media";
+import {
+  handleIndianMobileInput,
+  normalizeIndianMobileNumber,
+  validateIndianMobileNumber,
+} from "@/lib/phone";
 
 import { useAuth } from "../../contexts/AuthContext";
 import { toast } from "sonner";
@@ -34,16 +40,14 @@ const Profile = () => {
       reset({
         name: profileUser.name || "",
         email: profileUser.email || "",
-        phone: profileData?.profile?.phone || "",
+        phone: normalizeIndianMobileNumber(profileData?.profile?.phone || ""),
         subjects: profileData?.profile?.subjects?.join(", ") || "",
         experienceYears: profileData?.profile?.experienceYears ?? 0,
         newPassword: "",
         confirmPassword: "",
       });
       setPreview(
-        profileUser?.profileImage
-          ? `http://localhost:4000${profileUser.profileImage}`
-          : "/avatar-holder.avif"
+        resolveMediaUrl(profileUser?.profileImage)
       );
     }
   }, [profileData, user, reset]);
@@ -69,7 +73,9 @@ const Profile = () => {
 
     formData.append("name", values.name);
     formData.append("email", values.email);
-    formData.append("phone", values.phone || "");
+    if (values.phone) {
+      formData.append("phone", values.phone);
+    }
     formData.append("subjects", values.subjects || "");
     formData.append("experienceYears", values.experienceYears ?? 0);
 
@@ -163,7 +169,16 @@ const Profile = () => {
               Phone
             </label>
             <input
-              {...register("phone")}
+              type="tel"
+              inputMode="numeric"
+              maxLength={10}
+              autoComplete="tel-national"
+              pattern="[0-9]*"
+              {...register("phone", {
+                setValueAs: normalizeIndianMobileNumber,
+                validate: validateIndianMobileNumber,
+              })}
+              onInput={handleIndianMobileInput}
               className="mt-1 w-full rounded-lg bg-white border border-slate-300 px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
             />
           </div>

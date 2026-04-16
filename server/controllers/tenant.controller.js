@@ -5,6 +5,7 @@ import { Tutor } from "../models/tutor.model.js";
 import { Student } from "../models/student.model.js";
 import { sendTenantMail } from "../services/mail/mail.service.js";
 import { MAIL_TYPES } from "../services/mail/mail.constant.js";
+import { isIndianMobileNumber } from "../utils/phone.js";
 
 const dummyEmail = "voltix755@gmail.com";
 
@@ -36,6 +37,12 @@ export const registerTutor = async (req, res) => {
       return res.status(400).json({
         message:
           "name, email, password, phone, subjects and experienceYears are required",
+      });
+    }
+
+    if (!isIndianMobileNumber(phone)) {
+      return res.status(400).json({
+        message: "Phone must be a valid 10-digit Indian mobile number",
       });
     }
 
@@ -201,6 +208,12 @@ export const updateTutor = async (req, res) => {
       });
     }
 
+    if (phone !== undefined && phone !== "" && !isIndianMobileNumber(phone)) {
+      return res.status(400).json({
+        message: "Phone must be a valid 10-digit Indian mobile number",
+      });
+    }
+
     if (email && email !== tutorUser.email) {
       const existingUser = await User.findOne({ email });
       if (
@@ -272,6 +285,12 @@ export const registerStudent = async (req, res) => {
       return res.status(400).json({
         message:
           "name, email, password, rollNumber, classLevel, board, phone and parentName are required",
+      });
+    }
+
+    if (!isIndianMobileNumber(phone)) {
+      return res.status(400).json({
+        message: "Phone must be a valid 10-digit Indian mobile number",
       });
     }
 
@@ -440,7 +459,15 @@ export const updateStudent = async (req, res) => {
     if (rollNumber !== undefined) studentProfile.rollNumber = rollNumber;
     if (classLevel !== undefined) studentProfile.classLevel = classLevel;
     if (board !== undefined) studentProfile.board = board;
-    if (phone !== undefined) studentProfile.phone = phone;
+    if (phone !== undefined && phone !== "") {
+      if (!isIndianMobileNumber(phone)) {
+        return res.status(400).json({
+          message: "Phone must be a valid 10-digit Indian mobile number",
+        });
+      }
+
+      studentProfile.phone = phone;
+    }
     if (parentName !== undefined) studentProfile.parentName = parentName;
     if (status !== undefined) studentProfile.status = status;
 

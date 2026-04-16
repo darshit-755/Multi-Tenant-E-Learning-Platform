@@ -1,6 +1,7 @@
 import { User } from "../models/user.model.js";
 import { Tutor } from "../models/tutor.model.js";
 import bcrypt from "bcryptjs";
+import { isIndianMobileNumber } from "../utils/phone.js";
 
 export const getProfile = async (req, res) => {
   try {
@@ -70,7 +71,15 @@ export const updateProfile = async (req, res) => {
     const tutorProfile = await Tutor.findOne({ userId });
 
     if (tutorProfile) {
-      if (phone !== undefined) tutorProfile.phone = phone;
+      if (phone !== undefined && phone !== "") {
+        if (!isIndianMobileNumber(phone)) {
+          return res.status(400).json({
+            message: "Phone must be a valid 10-digit Indian mobile number",
+          });
+        }
+
+        tutorProfile.phone = phone;
+      }
 
       if (subjects !== undefined) {
         const normalizedSubjects = Array.isArray(subjects)

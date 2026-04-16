@@ -91,18 +91,7 @@ const TutorSidebarContent = () => {
         Attendance Report
       </Link>
 
-      <Link
-        to={`${basePath}/notes`}
-        className={cn(
-          "flex items-center gap-2 px-3 py-2 rounded-md transition-colors",
-          "text-slate-300 hover:bg-slate-800 hover:text-white",
-          location.pathname === `${basePath}/notes` &&
-          "bg-slate-800 text-white"
-        )}
-      >
-        <NotebookPen size={18} />
-        Notes
-      </Link>
+     
 
       <Link
         to={`${basePath}/doubts`}
@@ -115,6 +104,19 @@ const TutorSidebarContent = () => {
       >
         <MessageCircleQuestion size={18} />
         Doubts
+      </Link>
+
+       <Link
+        to={`${basePath}/notes`}
+        className={cn(
+          "flex items-center gap-2 px-3 py-2 rounded-md transition-colors",
+          "text-slate-300 hover:bg-slate-800 hover:text-white",
+          location.pathname === `${basePath}/notes` &&
+          "bg-slate-800 text-white"
+        )}
+      >
+        <NotebookPen size={18} />
+        Notes
       </Link>
 
     </nav>

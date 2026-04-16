@@ -1,6 +1,7 @@
 import { User } from "../models/user.model.js";
 import { Student } from "../models/student.model.js";
 import bcrypt from "bcryptjs";
+import { isIndianMobileNumber } from "../utils/phone.js";
 
 export const getProfile = async (req, res) => {
   try {
@@ -74,7 +75,15 @@ export const updateProfile = async (req, res) => {
       if (rollNumber !== undefined) studentProfile.rollNumber = rollNumber;
       if (classLevel !== undefined) studentProfile.classLevel = classLevel;
       if (board !== undefined) studentProfile.board = board;
-      if (phone !== undefined) studentProfile.phone = phone;
+      if (phone !== undefined && phone !== "") {
+        if (!isIndianMobileNumber(phone)) {
+          return res.status(400).json({
+            message: "Phone must be a valid 10-digit Indian mobile number",
+          });
+        }
+
+        studentProfile.phone = phone;
+      }
       if (parentName !== undefined) studentProfile.parentName = parentName;
       await studentProfile.save();
     }

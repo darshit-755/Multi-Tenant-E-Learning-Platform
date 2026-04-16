@@ -3,6 +3,7 @@ import {config} from "dotenv";
 import { dbConnect } from "./configs/dbConnect.js";
 import cors from "cors";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -31,6 +32,27 @@ app.use(cors({
 
 }))
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// Backward compatibility for legacy image paths stored as /uploads/<filename>
+app.get("/uploads/:filename", (req, res, next) => {
+    const { filename } = req.params;
+    const uploadsRoot = path.join(__dirname, "uploads");
+
+    const directPath = path.join(uploadsRoot, filename);
+    if (fs.existsSync(directPath)) {
+        return res.sendFile(directPath);
+    }
+
+    const knownFolders = ["superadmin", "tenant", "tutor", "student", "notes", "doubt"];
+    for (const folder of knownFolders) {
+        const candidatePath = path.join(uploadsRoot, folder, filename);
+        if (fs.existsSync(candidatePath)) {
+            return res.sendFile(candidatePath);
+        }
+    }
+
+    return next();
+});
 
 
 

@@ -3,6 +3,7 @@ import { useUpdateProfile } from "@/hooks/tenant/useUpdateProfile";
 import { useGetProfile } from "@/hooks/tenant/useGetProfile";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { resolveMediaUrl } from "@/lib/media";
 
 import { useAuth } from "../../contexts/AuthContext";
 import { toast } from "sonner";
@@ -37,9 +38,7 @@ const Profile = () => {
         confirmPassword: "",
       });
       setPreview(
-        profileUser?.profileImage
-          ? `http://localhost:4000${profileUser.profileImage}`
-          : "/avatar-holder.avif"
+        resolveMediaUrl(profileUser?.profileImage)
       );
     }
   }, [profileData, user, reset]);

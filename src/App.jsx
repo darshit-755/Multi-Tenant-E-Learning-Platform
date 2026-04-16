@@ -44,6 +44,7 @@ import StudentProfile from "@/pages/student/Profile";
 import StudentClasses from "@/pages/student/StudentClasses";
 import StudentBatches from "@/pages/student/StudentBatches";
 import StudentAttendancePage from "@/pages/student/StudentAttendancePage";
+import StudentNotesPage from "@/pages/student/StudentNotes";
 import ClassDoubtsPage from "@/pages/common/ClassDoubtsPage";
 import DoubtsHubPage from "@/pages/common/DoubtsHubPage";
 
@@ -124,6 +125,7 @@ function App() {
             <Route path="/student/classes" element={<StudentClasses />} />
             <Route path="/student/batches" element={<StudentBatches />} />
             <Route path="/student/attendance" element={<StudentAttendancePage />} />
+            <Route path="/student/notes" element={<StudentNotesPage />} />
             <Route path="/student/doubts" element={<DoubtsHubPage role="student" />} />
             <Route path="/student/class-doubts/:classId" element={<ClassDoubtsPage role="student" />} />
             <Route path="/student/profile" element={<StudentProfile />} />

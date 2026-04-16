@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { INDIAN_MOBILE_NUMBER_REGEX } from "../utils/phone.js";
 
 const { Schema, model } = mongoose;
 
@@ -31,6 +32,10 @@ const studentSchema = new Schema(
     phone: {
       type: String,
       trim: true,
+      match: [
+        INDIAN_MOBILE_NUMBER_REGEX,
+        "Phone must be a valid 10-digit Indian mobile number",
+      ],
     },
     parentName: {
       type: String,
