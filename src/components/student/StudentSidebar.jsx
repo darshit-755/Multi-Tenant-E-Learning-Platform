@@ -29,14 +29,14 @@ const StudentSidebarContent = () => {
       icon: BookOpen,
     },
     {
-      label: "Notes",
-      href: `${basePath}/notes`,
-      icon: NotebookPen,
-    },
-    {
       label: "Doubts",
       href: `${basePath}/doubts`,
       icon: MessageCircleQuestion,
+    },
+     {
+      label: "Notes",
+      href: `${basePath}/notes`,
+      icon: NotebookPen,
     },
   ];
 

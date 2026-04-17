@@ -1,5 +1,6 @@
 //server/services/mail/mail.service.js
 import transporter from "../../configs/mail.config.js";
+import resend from "../../configs/resend.config.js";
 import { MAIL_TYPES } from "./mail.constant.js";
 
 import { tenantRegisterAdminTemplate } from "../../templates/tenantRegisterAdmin.template.js";
@@ -14,6 +15,47 @@ import { classAssignedStudentTemplate } from "../../templates/classAssignedStude
 import { passwordResetTemplate } from "../../templates/passwordReset.template.js";
 import { classReminderStudentTemplate } from "../../templates/classReminderStudentTemplate.js";
 import { classReminderTutorTemplate } from "../../templates/classReminderTutorTemplate.js";
+
+const MAIL_PROVIDER = (process.env.MAIL_PROVIDER || "nodemailer").toLowerCase();
+
+const getFromEmail = () => {
+  return process.env.FROM_EMAIL || process.env.EMAIL_USER;
+};
+
+const sendWithProvider = async ({ to, subject, html }) => {
+  const fromEmail = getFromEmail();
+
+  if (!fromEmail) {
+    throw new Error("Missing sender email. Set FROM_EMAIL (or EMAIL_USER) in env.");
+  }
+
+  if (MAIL_PROVIDER === "resend") {
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error("MAIL_PROVIDER is resend but RESEND_API_KEY is not set.");
+    }
+
+    const { error } = await resend.emails.send({
+      from: `Tutorial App <${fromEmail}>`,
+      to,
+      subject,
+      html,
+    });
+
+    if (error) {
+      throw new Error(error.message || "Resend failed to send email.");
+    }
+    return;
+  }
+
+  const info = await transporter.sendMail({
+    from: `"Tutorial App" <${fromEmail}>`,
+    to,
+    subject,
+    html,
+  });
+
+  return info.messageId;
+};
 
 export const sendTenantMail = async (type, tenant, options = {}) => {
   try {
@@ -91,14 +133,17 @@ export const sendTenantMail = async (type, tenant, options = {}) => {
       throw new Error(`Recipient email is missing for mail type: ${type}`);
     }
 
-    const info = await transporter.sendMail({
-      from: `"Tutorial App" <${process.env.EMAIL_USER}>`,
+    const messageId = await sendWithProvider({
       to: recipient,
       subject: mailData.subject,
       html: mailData.html,
     });
 
-    console.log(`[Mail Service] ✅ Email sent successfully | type: ${type} | to: ${recipient} | messageId: ${info.messageId}`);
+    console.log(
+      `[Mail Service] ✅ Email sent successfully | provider: ${MAIL_PROVIDER} | type: ${type} | to: ${recipient}${
+        messageId ? ` | messageId: ${messageId}` : ""
+      }`,
+    );
   } catch (error) {
     console.error(`[Mail Service] ❌ Email sending failed | type: ${type} | error: ${error.message}`);
   }

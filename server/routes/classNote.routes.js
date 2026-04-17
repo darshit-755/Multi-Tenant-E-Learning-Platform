@@ -17,7 +17,10 @@ router.post(
   "/:classId",
   authMiddleware,
   authorizeRoles("tutor"),
-  upload.array("notePdfs"),
+  upload.fields([
+    { name: "notePdfs", maxCount: 10 },
+    { name: "lectureVideos", maxCount: 5 },
+  ]),
   addClassNote
 );
 

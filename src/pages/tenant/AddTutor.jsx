@@ -108,7 +108,7 @@ export default function AddTutor() {
       return;
     }
 
-    const { confirmPassword, ...payload } = data;
+    const { confirmPassword: _confirmPassword, ...payload } = data;
 
     const res = await createTutor({
       ...payload,
@@ -165,7 +165,7 @@ export default function AddTutor() {
       {/* Add Tutor Form */}
       <Card className="bg-white border border-slate-200 shadow-sm">
         <CardContent className="p-6">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
             {/* Name */}
             <div>
               <Label>Name</Label>
@@ -325,7 +325,6 @@ export default function AddTutor() {
                 inputMode="numeric"
                 maxLength={10}
                 autoComplete="tel-national"
-                pattern="[0-9]*"
                 placeholder="Phone number"
                 className="mt-1"
                 {...register("phone", {

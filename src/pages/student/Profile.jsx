@@ -17,7 +17,12 @@ const Profile = () => {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
 
-  const { register, handleSubmit, reset } = useForm({
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
     defaultValues: {
       name: "",
       email: "",
@@ -147,7 +152,7 @@ const Profile = () => {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           {/* Name */}
           <div>
             <label className="block text-sm font-medium text-slate-700">
@@ -209,7 +214,6 @@ const Profile = () => {
               inputMode="numeric"
               maxLength={10}
               autoComplete="tel-national"
-              pattern="[0-9]*"
               {...register("phone", {
                 setValueAs: normalizeIndianMobileNumber,
                 validate: validateIndianMobileNumber,
@@ -217,6 +221,9 @@ const Profile = () => {
               onInput={handleIndianMobileInput}
               className="mt-1 w-full rounded-lg bg-white border border-slate-300 px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
             />
+            {errors.phone && (
+              <p className="text-xs text-red-500 mt-1">{errors.phone.message}</p>
+            )}
           </div>
 
           <div>

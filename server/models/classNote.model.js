@@ -25,12 +25,40 @@ const classNoteSchema = new mongoose.Schema(
       trim: true,
       default: "Class Note",
     },
+    contentType: {
+      type: String,
+      enum: ["note", "videoLecture"],
+      default: "note",
+      index: true,
+    },
     content: {
       type: String,
       trim: true,
-      required: true,
+      default: "",
+    },
+    lectureLink: {
+      type: String,
+      trim: true,
+      default: "",
     },
     pdfs: {
+      type: [
+        {
+          url: {
+            type: String,
+            required: true,
+            trim: true,
+          },
+          name: {
+            type: String,
+            required: true,
+            trim: true,
+          },
+        },
+      ],
+      default: [],
+    },
+    videos: {
       type: [
         {
           url: {

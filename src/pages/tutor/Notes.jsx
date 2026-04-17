@@ -4,6 +4,12 @@ import { useForm } from "react-hook-form";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Table,
   TableBody,
   TableCell,
@@ -13,6 +19,13 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -49,14 +62,20 @@ export default function TutorNotesPage() {
     formState: { errors },
   } = useForm({
     defaultValues: {
+      contentType: "note",
       title: "",
       content: "",
+      lectureLink: "",
       notePdfs: null,
+      lectureVideos: null,
     },
   });
 
+  const watchedContentType = watch("contentType") || "note";
   const watchedPdfFiles = watch("notePdfs");
+  const watchedVideoFiles = watch("lectureVideos");
   const selectedPdfFiles = watchedPdfFiles ? Array.from(watchedPdfFiles) : [];
+  const selectedVideoFiles = watchedVideoFiles ? Array.from(watchedVideoFiles) : [];
 
   const notesQueryKey = ["class-notes", selectedClass?._id];
 
@@ -90,9 +109,16 @@ export default function TutorNotesPage() {
     },
   });
 
-  const openAddDialog = (cls) => {
+  const openAddDialog = (cls, contentType = "note") => {
     setSelectedClass(cls);
-    reset();
+    reset({
+      contentType,
+      title: "",
+      content: "",
+      lectureLink: "",
+      notePdfs: null,
+      lectureVideos: null,
+    });
     setIsAddDialogOpen(true);
   };
 
@@ -111,12 +137,20 @@ export default function TutorNotesPage() {
   };
 
   const onAddNoteSubmit = (values) => {
+    const contentType = values.contentType === "videoLecture" ? "videoLecture" : "note";
     const title = String(values.title || "").trim();
     const content = String(values.content || "").trim();
+    const lectureLink = String(values.lectureLink || "").trim();
     const files = values.notePdfs ? Array.from(values.notePdfs) : [];
+    const videoFiles = values.lectureVideos ? Array.from(values.lectureVideos) : [];
 
-    if (!content && files.length === 0) {
+    if (contentType === "note" && !content && files.length === 0) {
       toast.error("Add note content or at least one PDF");
+      return;
+    }
+
+    if (contentType === "videoLecture" && !lectureLink && videoFiles.length === 0) {
+      toast.error("Add lecture link or at least one video recording");
       return;
     }
 
@@ -130,12 +164,26 @@ export default function TutorNotesPage() {
       return;
     }
 
+    const nonVideoFile = videoFiles.find((file) => !file.type.startsWith("video/"));
+    if (nonVideoFile) {
+      setError("lectureVideos", {
+        type: "validate",
+        message: "Only video files are allowed",
+      });
+      toast.error("Only video files are allowed");
+      return;
+    }
+
     clearErrors("notePdfs");
+    clearErrors("lectureVideos");
 
     const payload = new FormData();
+    payload.append("contentType", contentType);
     payload.append("title", title);
     payload.append("content", content);
+    payload.append("lectureLink", lectureLink);
     files.forEach((file) => payload.append("notePdfs", file));
+    videoFiles.forEach((file) => payload.append("lectureVideos", file));
 
     addNoteMutation.mutate(payload);
   };
@@ -192,9 +240,19 @@ export default function TutorNotesPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-2">
-                          <Button size="sm" onClick={() => openAddDialog(cls)}>
-                            Add Note
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm">Add Material</Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start">
+                              <DropdownMenuItem onClick={() => openAddDialog(cls, "note")}>
+                                Add Note
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openAddDialog(cls, "videoLecture")}>
+                                Add Video Lecture
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                           <Button
                             size="sm"
                             variant="outline"
@@ -218,62 +276,134 @@ export default function TutorNotesPage() {
         onOpenChange={(open) => {
           setIsAddDialogOpen(open);
           if (!open) {
-            reset();
+            reset({
+              contentType: "note",
+              title: "",
+              content: "",
+              lectureLink: "",
+              notePdfs: null,
+              lectureVideos: null,
+            });
           }
         }}
       >
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>Add Note</DialogTitle>
+            <DialogTitle>Add Content</DialogTitle>
             <DialogDescription>
               {selectedClass
-                ? `Add note for ${selectedClass.topic || "Class Session"}`
-                : "Add note"}
+                ? `Add content for ${selectedClass.topic || "Class Session"}`
+                : "Add content"}
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onAddNoteSubmit)} className="space-y-4">
             <div className="space-y-2">
+              <Label htmlFor="content-type">Content Type</Label>
+              <Select
+                value={watchedContentType}
+                onValueChange={(value) => {
+                  const nextType = value === "videoLecture" ? "videoLecture" : "note";
+                  reset({
+                    contentType: nextType,
+                    title: "",
+                    content: "",
+                    lectureLink: "",
+                    notePdfs: null,
+                    lectureVideos: null,
+                  });
+                }}
+              >
+                <SelectTrigger id="content-type" className="w-full">
+                  <SelectValue placeholder="Select content type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="note">Class Note</SelectItem>
+                  <SelectItem value="videoLecture">Video Lecture</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="note-title">Title (optional)</Label>
               <Input
                 id="note-title"
-                placeholder="e.g. Key formulas"
+                placeholder={
+                  watchedContentType === "videoLecture"
+                    ? "e.g. Algebra Lecture Recording"
+                    : "e.g. Key formulas"
+                }
                 {...register("title")}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="note-content">Note Content</Label>
-              <textarea
-                id="note-content"
-                className="w-full min-h-32 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                placeholder="Write your class note here..."
-                {...register("content")}
-              />
-            </div>
+            {watchedContentType === "note" ? (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="note-content">Note Content</Label>
+                  <textarea
+                    id="note-content"
+                    className="w-full min-h-32 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                    placeholder="Write your class note here..."
+                    {...register("content")}
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="note-pdfs">PDFs (optional)</Label>
-              <Input
-                id="note-pdfs"
-                type="file"
-                accept="application/pdf"
-                multiple
-                {...register("notePdfs")}
-              />
-              {selectedPdfFiles.length > 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  Selected: {selectedPdfFiles.map((file) => file.name).join(", ")}
-                </p>
-              ) : null}
-              {errors.notePdfs?.message ? (
-                <p className="text-xs text-red-600">{errors.notePdfs.message}</p>
-              ) : null}
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="note-pdfs">PDFs (optional)</Label>
+                  <Input
+                    id="note-pdfs"
+                    type="file"
+                    accept="application/pdf"
+                    multiple
+                    {...register("notePdfs")}
+                  />
+                  {selectedPdfFiles.length > 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      Selected: {selectedPdfFiles.map((file) => file.name).join(", ")}
+                    </p>
+                  ) : null}
+                  {errors.notePdfs?.message ? (
+                    <p className="text-xs text-red-600">{errors.notePdfs.message}</p>
+                  ) : null}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="lecture-link">Lecture Link (optional)</Label>
+                  <Input
+                    id="lecture-link"
+                    type="url"
+                    placeholder="https://..."
+                    {...register("lectureLink")}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="lecture-videos">Video Recording (optional)</Label>
+                  <Input
+                    id="lecture-videos"
+                    type="file"
+                    accept="video/*"
+                    multiple
+                    {...register("lectureVideos")}
+                  />
+                  {selectedVideoFiles.length > 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      Selected: {selectedVideoFiles.map((file) => file.name).join(", ")}
+                    </p>
+                  ) : null}
+                  {errors.lectureVideos?.message ? (
+                    <p className="text-xs text-red-600">{errors.lectureVideos.message}</p>
+                  ) : null}
+                </div>
+              </>
+            )}
 
             <DialogFooter>
               <Button type="submit" disabled={addNoteMutation.isPending}>
-                {addNoteMutation.isPending ? "Saving..." : "Save Note"}
+                {addNoteMutation.isPending ? "Saving..." : "Save"}
               </Button>
             </DialogFooter>
           </form>
@@ -324,8 +454,24 @@ export default function TutorNotesPage() {
                         : ""}
                     </span>
                   </div>
+                  <div className="mt-1 text-xs font-medium text-slate-500">
+                    {note.contentType === "videoLecture" ? "Video Lecture" : "Class Note"}
+                  </div>
                   {note.content ? (
                     <p className="mt-2 text-sm whitespace-pre-wrap text-slate-700">{note.content}</p>
+                  ) : null}
+
+                  {note.lectureLink ? (
+                    <div className="mt-3">
+                      <a
+                        href={note.lectureLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-blue-700 hover:underline"
+                      >
+                        Open Lecture Link
+                      </a>
+                    </div>
                   ) : null}
 
                   {Array.isArray(note.pdfs) && note.pdfs.length > 0 ? (
@@ -356,9 +502,33 @@ export default function TutorNotesPage() {
                         })}
                       </div>
                     </div>
-                  ) : (
+                  ) : note.contentType !== "videoLecture" ? (
                     <p className="mt-3 text-xs text-slate-500">No PDF attached to this note.</p>
-                  )}
+                  ) : null}
+
+                  {Array.isArray(note.videos) && note.videos.length > 0 ? (
+                    <div className="mt-3 space-y-3">
+                      <p className="text-xs font-medium text-slate-600">Video Recordings</p>
+                      {note.videos.map((video, index) => {
+                        const videoUrl = typeof video === "string" ? video : video?.url;
+                        const videoName =
+                          typeof video === "string"
+                            ? String(video).split("/").pop() || `Video ${index + 1}`
+                            : video?.name || String(video?.url || "").split("/").pop() || `Video ${index + 1}`;
+
+                        if (!videoUrl) return null;
+
+                        return (
+                          <div key={`${note._id}-video-${index}`} className="rounded-md border p-2 bg-white">
+                            <p className="mb-2 text-xs text-slate-700">{videoName}</p>
+                            <video className="w-full rounded-md" controls src={videoUrl} preload="metadata" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : note.contentType === "videoLecture" ? (
+                    <p className="mt-3 text-xs text-slate-500">No uploaded video recordings.</p>
+                  ) : null}
                 </div>
               ))
             )}

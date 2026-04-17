@@ -119,7 +119,7 @@ export default function StudentNotesPage() {
                           variant="outline"
                           onClick={() => openViewDialog(cls)}
                         >
-                          View Notes
+                          View Material
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -175,8 +175,24 @@ export default function StudentNotesPage() {
                         : ""}
                     </span>
                   </div>
+                  <div className="mt-1 text-xs font-medium text-slate-500">
+                    {note.contentType === "videoLecture" ? "Video Lecture" : "Class Note"}
+                  </div>
                   {note.content ? (
                     <p className="mt-2 text-sm whitespace-pre-wrap text-slate-700">{note.content}</p>
+                  ) : null}
+
+                  {note.lectureLink ? (
+                    <div className="mt-3">
+                      <a
+                        href={note.lectureLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-blue-700 hover:underline"
+                      >
+                        Open Lecture Link
+                      </a>
+                    </div>
                   ) : null}
 
                   {Array.isArray(note.pdfs) && note.pdfs.length > 0 ? (
@@ -207,9 +223,33 @@ export default function StudentNotesPage() {
                         })}
                       </div>
                     </div>
-                  ) : (
+                  ) : note.contentType !== "videoLecture" ? (
                     <p className="mt-3 text-xs text-slate-500">No PDF attached to this note.</p>
-                  )}
+                  ) : null}
+
+                  {Array.isArray(note.videos) && note.videos.length > 0 ? (
+                    <div className="mt-3 space-y-3">
+                      <p className="text-xs font-medium text-slate-600">Video Recordings</p>
+                      {note.videos.map((video, index) => {
+                        const videoUrl = typeof video === "string" ? video : video?.url;
+                        const videoName =
+                          typeof video === "string"
+                            ? String(video).split("/").pop() || `Video ${index + 1}`
+                            : video?.name || String(video?.url || "").split("/").pop() || `Video ${index + 1}`;
+
+                        if (!videoUrl) return null;
+
+                        return (
+                          <div key={`${note._id}-video-${index}`} className="rounded-md border p-2 bg-white">
+                            <p className="mb-2 text-xs text-slate-700">{videoName}</p>
+                            <video className="w-full rounded-md" controls src={videoUrl} preload="metadata" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : note.contentType === "videoLecture" ? (
+                    <p className="mt-3 text-xs text-slate-500">No uploaded video recordings.</p>
+                  ) : null}
                 </div>
               ))
             )}

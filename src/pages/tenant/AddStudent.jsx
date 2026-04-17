@@ -136,7 +136,7 @@ export default function AddStudent() {
 
       <Card className="bg-white border border-slate-200 shadow-sm">
         <CardContent className="p-6">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
             <div>
               <Label>Name</Label>
               <Input
@@ -240,7 +240,6 @@ export default function AddStudent() {
                 inputMode="numeric"
                 maxLength={10}
                 autoComplete="tel-national"
-                pattern="[0-9]*"
                 placeholder="Phone number"
                 className="mt-1"
                 {...register("phone", {
