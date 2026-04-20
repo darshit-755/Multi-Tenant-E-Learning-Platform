@@ -1,3 +1,4 @@
+
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -35,8 +36,31 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useGetMyClasses } from "@/hooks/tutor/useGetMyClasses";
-import { addClassNoteApi, getClassNotesApi } from "@/services/classNote.api";
+import { addClassNoteApi, getClassNotesApi, deleteClassNoteApi } from "@/services/classNote.api";
 import { toast } from "sonner";
+
+// Simple Tabs component for local use
+function Tabs({ tabs, active, onTabChange }) {
+  return (
+    <div className="mb-4 flex border-b">
+      {tabs.map((tab) => (
+        <button
+          key={tab}
+          className={`px-4 py-2 -mb-px border-b-2 font-medium text-sm focus:outline-none ${
+            active === tab
+              ? 'border-blue-600 text-blue-700'
+              : 'border-transparent text-slate-500 hover:text-blue-600'
+          }`}
+          onClick={() => onTabChange(tab)}
+          type="button"
+        >
+          {tab}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 
 export default function TutorNotesPage() {
   const queryClient = useQueryClient();
@@ -51,6 +75,8 @@ export default function TutorNotesPage() {
     url: "",
     name: "",
   });
+  const [materialTab, setMaterialTab] = useState("Video");
+  const [editNoteId, setEditNoteId] = useState(null);
 
   const {
     register,
@@ -93,6 +119,20 @@ export default function TutorNotesPage() {
     enabled: Boolean(selectedClass?._id) && (isViewDialogOpen || isAddDialogOpen),
   });
 
+  // Delete note handler (must be at component level, not inside another function)
+  const handleDeleteNote = (note) => {
+    if (!selectedClass?._id || !note?._id) return;
+    if (!window.confirm("Are you sure you want to delete this material?")) return;
+    deleteClassNoteApi(selectedClass._id, note._id)
+      .then(() => {
+        toast.success("Material deleted");
+        refetchNotes();
+      })
+      .catch(() => {
+        toast.error("Failed to delete material");
+      });
+  };
+
   const addNoteMutation = useMutation({
     mutationFn: async (payload) => {
       const { data: responseData } = await addClassNoteApi(selectedClass._id, payload);
@@ -109,16 +149,30 @@ export default function TutorNotesPage() {
     },
   });
 
-  const openAddDialog = (cls, contentType = "note") => {
+  const openAddDialog = (cls, contentType = "note", note = null) => {
     setSelectedClass(cls);
-    reset({
-      contentType,
-      title: "",
-      content: "",
-      lectureLink: "",
-      notePdfs: null,
-      lectureVideos: null,
-    });
+    if (note) {
+      // Editing existing note
+      setEditNoteId(note._id);
+      reset({
+        contentType: note.contentType,
+        title: cls?.topic || "",
+        content: note.content || "",
+        lectureLink: note.lectureLink || "",
+        notePdfs: null,
+        lectureVideos: null,
+      });
+    } else {
+      setEditNoteId(null);
+      reset({
+        contentType,
+        title: cls?.topic || "",
+        content: "",
+        lectureLink: "",
+        notePdfs: null,
+        lectureVideos: null,
+      });
+    }
     setIsAddDialogOpen(true);
   };
 
@@ -185,7 +239,18 @@ export default function TutorNotesPage() {
     files.forEach((file) => payload.append("notePdfs", file));
     videoFiles.forEach((file) => payload.append("lectureVideos", file));
 
-    addNoteMutation.mutate(payload);
+    // If editing, delete the old note first, then add new
+    if (editNoteId) {
+      deleteClassNoteApi(selectedClass._id, editNoteId)
+        .then(() => {
+          addNoteMutation.mutate(payload);
+        })
+        .catch(() => {
+          toast.error("Failed to replace old material");
+        });
+    } else {
+      addNoteMutation.mutate(payload);
+    }
   };
 
   if (isLoading) {
@@ -325,14 +390,11 @@ export default function TutorNotesPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="note-title">Title (optional)</Label>
+              <Label htmlFor="note-title">Title</Label>
               <Input
                 id="note-title"
-                placeholder={
-                  watchedContentType === "videoLecture"
-                    ? "e.g. Algebra Lecture Recording"
-                    : "e.g. Key formulas"
-                }
+                value={selectedClass?.topic || ""}
+                readOnly
                 {...register("title")}
               />
             </div>
@@ -444,93 +506,123 @@ export default function TutorNotesPage() {
                 No notes yet for this class.
               </p>
             ) : (
-              (classNotesData?.notes || []).map((note) => (
-                <div key={note._id} className="rounded-md border p-3 bg-slate-50">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-medium text-slate-900">{note.title || "Class Note"}</h3>
-                    <span className="text-xs text-slate-500">
-                      {note.createdAt
-                        ? new Date(note.createdAt).toLocaleString()
-                        : ""}
-                    </span>
-                  </div>
-                  <div className="mt-1 text-xs font-medium text-slate-500">
-                    {note.contentType === "videoLecture" ? "Video Lecture" : "Class Note"}
-                  </div>
-                  {note.content ? (
-                    <p className="mt-2 text-sm whitespace-pre-wrap text-slate-700">{note.content}</p>
-                  ) : null}
-
-                  {note.lectureLink ? (
-                    <div className="mt-3">
-                      <a
-                        href={note.lectureLink}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs text-blue-700 hover:underline"
-                      >
-                        Open Lecture Link
-                      </a>
-                    </div>
-                  ) : null}
-
-                  {Array.isArray(note.pdfs) && note.pdfs.length > 0 ? (
-                    <div className="mt-3 space-y-2">
-                      <p className="text-xs font-medium text-slate-600">PDF Attachments</p>
-                      <div className="flex flex-wrap gap-2">
-                        {note.pdfs.map((pdf, index) => {
-                          const pdfUrl = typeof pdf === "string" ? pdf : pdf?.url;
-                          const pdfName =
-                            typeof pdf === "string"
-                              ? String(pdf).split("/").pop() || `PDF ${index + 1}`
-                              : pdf?.name || String(pdf?.url || "").split("/").pop() || `PDF ${index + 1}`;
-
-                          if (!pdfUrl) return null;
-
-                          return (
-                            <Button
-                              key={`${note._id}-pdf-${index}`}
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openPdfPreview({ url: pdfUrl, name: pdfName })}
-                              className="h-auto py-1 text-xs text-blue-700 border-blue-200 hover:bg-blue-50"
-                            >
-                              View PDF: {pdfName}
-                            </Button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : note.contentType !== "videoLecture" ? (
-                    <p className="mt-3 text-xs text-slate-500">No PDF attached to this note.</p>
-                  ) : null}
-
-                  {Array.isArray(note.videos) && note.videos.length > 0 ? (
-                    <div className="mt-3 space-y-3">
-                      <p className="text-xs font-medium text-slate-600">Video Recordings</p>
-                      {note.videos.map((video, index) => {
-                        const videoUrl = typeof video === "string" ? video : video?.url;
-                        const videoName =
-                          typeof video === "string"
-                            ? String(video).split("/").pop() || `Video ${index + 1}`
-                            : video?.name || String(video?.url || "").split("/").pop() || `Video ${index + 1}`;
-
-                        if (!videoUrl) return null;
-
-                        return (
-                          <div key={`${note._id}-video-${index}`} className="rounded-md border p-2 bg-white">
-                            <p className="mb-2 text-xs text-slate-700">{videoName}</p>
-                            <video className="w-full rounded-md" controls src={videoUrl} preload="metadata" />
+              <>
+                <Tabs
+                  tabs={["Video", "PDF"]}
+                  active={materialTab}
+                  onTabChange={setMaterialTab}
+                />
+                {materialTab === "Video" ? (
+                  (classNotesData?.notes || []).every(
+                    (note) => !Array.isArray(note.videos) || note.videos.length === 0
+                  ) ? (
+                    <p className="text-xs text-slate-500">No uploaded video recordings.</p>
+                  ) : (
+                    (classNotesData?.notes || []).map((note) =>
+                      Array.isArray(note.videos) && note.videos.length > 0 ? (
+                        <div key={note._id + "-videos"} className="rounded-md border p-3 bg-slate-50">
+                          <div className="flex items-center justify-between gap-2">
+                            <h3 className="font-medium text-slate-900">{note.title || "Class Note"}</h3>
+                            <span className="text-xs text-slate-500">
+                              {note.createdAt ? new Date(note.createdAt).toLocaleString() : ""}
+                            </span>
                           </div>
-                        );
-                      })}
-                    </div>
-                  ) : note.contentType === "videoLecture" ? (
-                    <p className="mt-3 text-xs text-slate-500">No uploaded video recordings.</p>
-                  ) : null}
-                </div>
-              ))
+                          <div className="flex gap-2 my-2 justify-end">
+                            <Button size="xs" variant="outline" onClick={() => openAddDialog(selectedClass, note.contentType, note)}>Edit</Button>
+                            <Button size="xs" variant="destructive" onClick={() => handleDeleteNote(note)}>Delete</Button>
+                          </div>
+                          <div className="mt-1 text-xs font-medium text-slate-500">
+                            {note.contentType === "videoLecture" ? "Video Lecture" : "Class Note"}
+                          </div>
+                          {note.lectureLink ? (
+                            <div className="mt-3">
+                              <a
+                                href={note.lectureLink}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-xs text-blue-700 hover:underline"
+                              >
+                                Open Lecture Link
+                              </a>
+                            </div>
+                          ) : null}
+                          <div className="mt-3 space-y-3">
+                            <p className="text-xs font-medium text-slate-600">Video Recordings</p>
+                            {note.videos.map((video, index) => {
+                              const videoUrl = typeof video === "string" ? video : video?.url;
+                              const videoName =
+                                typeof video === "string"
+                                  ? String(video).split("/").pop() || `Video ${index + 1}`
+                                  : video?.name || String(video?.url || "").split("/").pop() || `Video ${index + 1}`;
+                              if (!videoUrl) return null;
+                              return (
+                                <div key={`${note._id}-video-${index}`} className="rounded-md border p-2 bg-white">
+                                  <p className="mb-2 text-xs text-slate-700">{videoName}</p>
+                                  <video className="w-full rounded-md" controls src={videoUrl} preload="metadata" />
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : null
+                    )
+                  )
+                ) : (
+                  (classNotesData?.notes || []).every(
+                    (note) => !Array.isArray(note.pdfs) || note.pdfs.length === 0
+                  ) ? (
+                    <p className="text-xs text-slate-500">No PDF attached to any note.</p>
+                  ) : (
+                    (classNotesData?.notes || []).map((note) =>
+                      Array.isArray(note.pdfs) && note.pdfs.length > 0 ? (
+                        <div key={note._id + "-pdfs"} className="rounded-md border p-3 bg-slate-50">
+                          <div className="flex items-center justify-between gap-2">
+                            <h3 className="font-medium text-slate-900">{note.title || "Class Note"}</h3>
+                            <span className="text-xs text-slate-500">
+                              {note.createdAt ? new Date(note.createdAt).toLocaleString() : ""}
+                            </span>
+                          </div>
+                          <div className="flex gap-2 my-2 justify-end">
+                            <Button size="xs" variant="outline" onClick={() => openAddDialog(selectedClass, note.contentType, note)}>Edit</Button>
+                            <Button size="xs" variant="destructive" onClick={() => handleDeleteNote(note)}>Delete</Button>
+                          </div>
+                          <div className="mt-1 text-xs font-medium text-slate-500">
+                            {note.contentType === "videoLecture" ? "Video Lecture" : "Class Note"}
+                          </div>
+                          {note.content ? (
+                            <p className="mt-2 text-sm whitespace-pre-wrap text-slate-700">{note.content}</p>
+                          ) : null}
+                          <div className="mt-3 space-y-2">
+                            <p className="text-xs font-medium text-slate-600">PDF Attachments</p>
+                            <div className="flex flex-wrap gap-2">
+                              {note.pdfs.map((pdf, index) => {
+                                const pdfUrl = typeof pdf === "string" ? pdf : pdf?.url;
+                                const pdfName =
+                                  typeof pdf === "string"
+                                    ? String(pdf).split("/").pop() || `PDF ${index + 1}`
+                                    : pdf?.name || String(pdf?.url || "").split("/").pop() || `PDF ${index + 1}`;
+                                if (!pdfUrl) return null;
+                                return (
+                                  <Button
+                                    key={`${note._id}-pdf-${index}`}
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => openPdfPreview({ url: pdfUrl, name: pdfName })}
+                                    className="h-auto py-1 text-xs text-blue-700 border-blue-200 hover:bg-blue-50"
+                                  >
+                                    View PDF: {pdfName}
+                                  </Button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      ) : null
+                    )
+                  )
+                )}
+              </>
             )}
           </div>
         </DialogContent>

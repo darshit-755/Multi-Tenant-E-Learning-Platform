@@ -38,11 +38,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useGetMyClasses } from "@/hooks/student/useGetMyClasses";
+import { useGetMyClasses } from "@/hooks/tutor/useGetMyClasses";
 import { getClassNotesApi } from "@/services/classNote.api";
 import { formatDateWithDay } from "@/utils/classUtils";
 
-export default function StudentNotesPage() {
+export default function ViewMaterialPage() {
   const { data, isLoading, isError } = useGetMyClasses();
   const classes = useMemo(() => data?.classes || [], [data]);
 
@@ -55,7 +55,7 @@ export default function StudentNotesPage() {
   });
   const [materialTab, setMaterialTab] = useState("Video");
 
-  const notesQueryKey = ["student-class-notes", selectedClass?._id];
+  const notesQueryKey = ["tutor-class-notes", selectedClass?._id];
 
   const {
     data: classNotesData,
@@ -92,20 +92,20 @@ export default function StudentNotesPage() {
   if (isError) {
     return (
       <p className="text-sm text-red-600">
-        Failed to load classes for notes page.
+        Failed to load classes for material page.
       </p>
     );
   }
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-4">
-      <h1 className="text-2xl font-semibold text-slate-800">Class Notes</h1>
+      <h1 className="text-2xl font-semibold text-slate-800">View Material</h1>
 
       <Card>
         <CardContent className="p-4">
           {classes.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No classes found. Notes will appear once classes are assigned.
+              No classes found. Material will appear once classes are created.
             </p>
           ) : (
             <div className="rounded-md border overflow-x-auto">
@@ -164,27 +164,27 @@ export default function StudentNotesPage() {
       >
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>View Notes</DialogTitle>
+            <DialogTitle>View Material</DialogTitle>
             <DialogDescription>
               {selectedClass
-                ? `All notes for ${selectedClass.topic || "Class Session"}`
-                : "Class notes"}
+                ? `All material for ${selectedClass.topic || "Class Session"}`
+                : "Class material"}
             </DialogDescription>
           </DialogHeader>
 
           <div className="max-h-[60vh] overflow-y-auto space-y-3">
             {isNotesLoading ? (
-              <p className="text-sm text-muted-foreground">Loading notes...</p>
+              <p className="text-sm text-muted-foreground">Loading material...</p>
             ) : isNotesError ? (
               <div className="space-y-2">
-                <p className="text-sm text-red-600">Failed to fetch notes.</p>
+                <p className="text-sm text-red-600">Failed to fetch material.</p>
                 <Button variant="outline" size="sm" onClick={() => refetchNotes()}>
                   Retry
                 </Button>
               </div>
             ) : (classNotesData?.notes || []).length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                No notes yet for this class.
+                No material yet for this class.
               </p>
             ) : (
               <>
@@ -248,7 +248,7 @@ export default function StudentNotesPage() {
                   (classNotesData?.notes || []).every(
                     (note) => !Array.isArray(note.pdfs) || note.pdfs.length === 0
                   ) ? (
-                    <p className="text-xs text-slate-500">No PDF attached to any note.</p>
+                    <p className="text-xs text-slate-500">No PDF attached to any material.</p>
                   ) : (
                     (classNotesData?.notes || []).map((note) =>
                       Array.isArray(note.pdfs) && note.pdfs.length > 0 ? (

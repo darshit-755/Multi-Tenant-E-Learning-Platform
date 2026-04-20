@@ -1,3 +1,50 @@
+// Delete a class note
+export const deleteClassNote = async (req, res) => {
+  try {
+    const { noteId } = req.params;
+    const { tenantId } = req.user;
+    const note = await ClassNote.findOneAndDelete({ _id: noteId, tenantId });
+    if (!note) {
+      return res.status(404).json({ message: "Note not found" });
+    }
+    return res.status(200).json({ message: "Note deleted successfully" });
+  } catch (error) {
+    console.error("Delete Class Note Error:", error);
+    return res.status(500).json({ message: "Server Error" });
+  }
+};
+
+// Update a class note
+export const updateClassNote = async (req, res) => {
+  try {
+    const { noteId } = req.params;
+    const { tenantId } = req.user;
+    const note = await ClassNote.findOne({ _id: noteId, tenantId });
+    if (!note) {
+      return res.status(404).json({ message: "Note not found" });
+    }
+
+    // Only update fields that are present in the request
+    if (typeof req.body.title === "string") note.title = req.body.title.trim();
+    if (typeof req.body.content === "string") note.content = req.body.content.trim();
+    if (typeof req.body.contentType === "string") note.contentType = req.body.contentType;
+    if (typeof req.body.lectureLink === "string") note.lectureLink = req.body.lectureLink.trim();
+
+    // Handle file replacements
+    if (req.files && req.files.notePdfs) {
+      note.pdfs = buildUploadedFileObjects(req, req.files.notePdfs, "notes");
+    }
+    if (req.files && req.files.lectureVideos) {
+      note.videos = buildUploadedFileObjects(req, req.files.lectureVideos, "lectures");
+    }
+
+    await note.save();
+    return res.status(200).json({ message: "Note updated successfully", data: note });
+  } catch (error) {
+    console.error("Update Class Note Error:", error);
+    return res.status(500).json({ message: "Server Error" });
+  }
+};
 import { Class } from "../models/class.model.js";
 import { Tutor } from "../models/tutor.model.js";
 import { ClassNote } from "../models/classNote.model.js";
