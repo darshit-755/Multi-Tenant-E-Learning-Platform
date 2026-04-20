@@ -24,6 +24,10 @@ const getUploadFolder = (req, file) => {
     return "notes";
   }
 
+  if (file.fieldname === "lectureVideos") {
+    return "lectures";
+  }
+
   if (file.fieldname === "profileImage") {
     return toSafeFolderName(req.user?.role, "profile");
   }
@@ -76,6 +80,16 @@ const fileFilter = (req, file, cb) => {
     return;
   }
 
+  if (file.fieldname === "lectureVideos") {
+    if (file.mimetype.startsWith("video/")) {
+      cb(null, true);
+      return;
+    }
+
+    cb(new Error("Only video files allowed"), false);
+    return;
+  }
+
   cb(new Error("Unsupported file field"), false);
 };
 
@@ -83,6 +97,6 @@ export const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB
+    fileSize: 1000 * 1024 * 1024, // 10MB
   },
 });

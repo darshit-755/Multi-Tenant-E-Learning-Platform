@@ -43,7 +43,7 @@ app.get("/uploads/:filename", (req, res, next) => {
         return res.sendFile(directPath);
     }
 
-    const knownFolders = ["superadmin", "tenant", "tutor", "student", "notes", "doubt"];
+    const knownFolders = ["superadmin", "tenant", "tutor", "student", "notes", "lectures", "doubt"];
     for (const folder of knownFolders) {
         const candidatePath = path.join(uploadsRoot, folder, filename);
         if (fs.existsSync(candidatePath)) {

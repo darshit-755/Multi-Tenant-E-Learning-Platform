@@ -15,17 +15,44 @@ const formatClassDate = (rawDate) => {
   });
 };
 
-const buildPdfUrls = (req, files = []) => {
+const buildUploadedFileObjects = (req, files = [], fallbackFolder = "misc") => {
   if (!Array.isArray(files) || files.length === 0) return [];
   const baseUrl = `${req.protocol}://${req.get("host")}`;
 
   return files.map((file) => {
-    const folder = file.destination?.split(/[\\/]/).pop() || "notes";
+    const folder = file.destination?.split(/[\\/]/).pop() || fallbackFolder;
     return {
       url: `${baseUrl}/uploads/${folder}/${file.filename}`,
       name: file.originalname || file.filename,
     };
   });
+};
+
+const normalizeAttachmentList = (items = [], fallbackName = "File") => {
+  if (!Array.isArray(items)) return [];
+
+  return items
+    .map((item) => {
+      if (typeof item === "string") {
+        const fallback = String(item).split("/").pop() || fallbackName;
+        return { url: item, name: fallback };
+      }
+
+      return {
+        url: item?.url || "",
+        name: item?.name || String(item?.url || "").split("/").pop() || fallbackName,
+      };
+    })
+    .filter((item) => Boolean(item.url));
+};
+
+const isValidHttpUrl = (urlValue = "") => {
+  try {
+    const parsedUrl = new URL(urlValue);
+    return parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:";
+  } catch (_error) {
+    return false;
+  }
 };
 
 const validateTutorClassAccess = async (req, classId) => {
@@ -150,19 +177,10 @@ export const getClassNotes = async (req, res) => {
 
     const normalizedNotes = notes.map((note) => {
       const noteObj = note.toObject();
-      noteObj.pdfs = (noteObj.pdfs || [])
-        .map((pdf) => {
-          if (typeof pdf === "string") {
-            const fallbackName = String(pdf).split("/").pop() || "PDF";
-            return { url: pdf, name: fallbackName };
-          }
-
-          return {
-            url: pdf?.url || "",
-            name: pdf?.name || String(pdf?.url || "").split("/").pop() || "PDF",
-          };
-        })
-        .filter((pdf) => Boolean(pdf.url));
+      noteObj.contentType = noteObj.contentType || "note";
+      noteObj.pdfs = normalizeAttachmentList(noteObj.pdfs, "PDF");
+      noteObj.videos = normalizeAttachmentList(noteObj.videos, "Video");
+      noteObj.lectureLink = String(noteObj.lectureLink || "").trim();
 
       return noteObj;
     });
@@ -181,14 +199,41 @@ export const getClassNotes = async (req, res) => {
 export const addClassNote = async (req, res) => {
   try {
     const { classId } = req.params;
+    const contentType =
+      String(req.body?.contentType || "note").trim() === "videoLecture"
+        ? "videoLecture"
+        : "note";
     const title = String(req.body?.title || "").trim();
     const content = String(req.body?.content || "").trim();
-    const pdfs = buildPdfUrls(req, req.files || []);
+    const lectureLink = String(req.body?.lectureLink || "").trim();
 
-    if (!content && pdfs.length === 0) {
+    const notePdfFiles = Array.isArray(req.files?.notePdfs) ? req.files.notePdfs : [];
+    const lectureVideoFiles = Array.isArray(req.files?.lectureVideos)
+      ? req.files.lectureVideos
+      : [];
+
+    const pdfs = buildUploadedFileObjects(req, notePdfFiles, "notes");
+    const videos = buildUploadedFileObjects(req, lectureVideoFiles, "lectures");
+
+    if (lectureLink && !isValidHttpUrl(lectureLink)) {
+      return res
+        .status(400)
+        .json({ message: "Lecture link must be a valid http/https URL" });
+    }
+
+    const hasNoteContent = Boolean(content) || pdfs.length > 0;
+    const hasVideoContent = Boolean(lectureLink) || videos.length > 0;
+
+    if (contentType === "note" && !hasNoteContent) {
       return res
         .status(400)
         .json({ message: "Add note content or at least one PDF" });
+    }
+
+    if (contentType === "videoLecture" && !hasVideoContent) {
+      return res
+        .status(400)
+        .json({ message: "Add lecture link or upload at least one video" });
     }
 
     const accessResult = await validateTutorClassAccess(req, classId);
@@ -204,9 +249,12 @@ export const addClassNote = async (req, res) => {
       classId,
       tenantId,
       tutorId: accessResult.tutorProfile._id,
-      title: title || "Class Note",
+      contentType,
+      title: title || (contentType === "videoLecture" ? "Video Lecture" : "Class Note"),
       content,
+      lectureLink,
       pdfs,
+      videos,
     });
 
     await note.populate({
