@@ -17,6 +17,7 @@ import { classReminderStudentTemplate } from "../../templates/classReminderStude
 import { classReminderTutorTemplate } from "../../templates/classReminderTutorTemplate.js";
 
 const MAIL_PROVIDER = (process.env.MAIL_PROVIDER || "nodemailer").toLowerCase();
+const RESEND_DUMMY_MAIL = process.env.RESEND_DUMMY_MAIL || "darshitp088@gmail.com";
 
 const getFromEmail = () => {
   return process.env.FROM_EMAIL || process.env.EMAIL_USER;
@@ -34,9 +35,12 @@ const sendWithProvider = async ({ to, subject, html }) => {
       throw new Error("MAIL_PROVIDER is resend but RESEND_API_KEY is not set.");
     }
 
+    // Route all Resend traffic to a single inbox for safe testing.
+    const resendRecipient = RESEND_DUMMY_MAIL;
+
     const { error } = await resend.emails.send({
       from: `Tutorial App <${fromEmail}>`,
-      to,
+      to: resendRecipient,
       subject,
       html,
     });
@@ -44,7 +48,11 @@ const sendWithProvider = async ({ to, subject, html }) => {
     if (error) {
       throw new Error(error.message || "Resend failed to send email.");
     }
-    return;
+
+    return {
+      deliveredTo: resendRecipient,
+      originalTo: to,
+    };
   }
 
   const info = await transporter.sendMail({
@@ -54,7 +62,11 @@ const sendWithProvider = async ({ to, subject, html }) => {
     html,
   });
 
-  return info.messageId;
+  return {
+    messageId: info.messageId,
+    deliveredTo: to,
+    originalTo: to,
+  };
 };
 
 export const sendTenantMail = async (type, tenant, options = {}) => {
@@ -133,15 +145,15 @@ export const sendTenantMail = async (type, tenant, options = {}) => {
       throw new Error(`Recipient email is missing for mail type: ${type}`);
     }
 
-    const messageId = await sendWithProvider({
+    const deliveryResult = await sendWithProvider({
       to: recipient,
       subject: mailData.subject,
       html: mailData.html,
     });
 
     console.log(
-      `[Mail Service] ✅ Email sent successfully | provider: ${MAIL_PROVIDER} | type: ${type} | to: ${recipient}${
-        messageId ? ` | messageId: ${messageId}` : ""
+      `[Mail Service] ✅ Email sent successfully | provider: ${MAIL_PROVIDER} | type: ${type} | to: ${deliveryResult?.deliveredTo || recipient} | originalTo: ${deliveryResult?.originalTo || recipient}${
+        deliveryResult?.messageId ? ` | messageId: ${deliveryResult.messageId}` : ""
       }`,
     );
   } catch (error) {

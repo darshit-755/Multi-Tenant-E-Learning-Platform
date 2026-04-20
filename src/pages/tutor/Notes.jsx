@@ -35,6 +35,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import ConfirmActionDialog from "@/components/common/ConfirmActionDialog";
 import { useGetMyClasses } from "@/hooks/tutor/useGetMyClasses";
 import { addClassNoteApi, getClassNotesApi, deleteClassNoteApi } from "@/services/classNote.api";
 import { toast } from "sonner";
@@ -77,6 +78,8 @@ export default function TutorNotesPage() {
   });
   const [materialTab, setMaterialTab] = useState("Video");
   const [editNoteId, setEditNoteId] = useState(null);
+  const [deleteNoteTarget, setDeleteNoteTarget] = useState(null);
+  const [isDeletingNote, setIsDeletingNote] = useState(false);
 
   const {
     register,
@@ -122,15 +125,23 @@ export default function TutorNotesPage() {
   // Delete note handler (must be at component level, not inside another function)
   const handleDeleteNote = (note) => {
     if (!selectedClass?._id || !note?._id) return;
-    if (!window.confirm("Are you sure you want to delete this material?")) return;
-    deleteClassNoteApi(selectedClass._id, note._id)
-      .then(() => {
-        toast.success("Material deleted");
-        refetchNotes();
-      })
-      .catch(() => {
-        toast.error("Failed to delete material");
-      });
+    setDeleteNoteTarget(note);
+  };
+
+  const confirmDeleteNote = async () => {
+    if (!selectedClass?._id || !deleteNoteTarget?._id) return;
+
+    try {
+      setIsDeletingNote(true);
+      await deleteClassNoteApi(selectedClass._id, deleteNoteTarget._id);
+      toast.success("Material deleted");
+      refetchNotes();
+      setDeleteNoteTarget(null);
+    } catch {
+      toast.error("Failed to delete material");
+    } finally {
+      setIsDeletingNote(false);
+    }
   };
 
   const addNoteMutation = useMutation({
@@ -478,6 +489,7 @@ export default function TutorNotesPage() {
           setIsViewDialogOpen(open);
           if (!open) {
             setSelectedClass(null);
+            setDeleteNoteTarget(null);
           }
         }}
       >
@@ -627,6 +639,18 @@ export default function TutorNotesPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ConfirmActionDialog
+        open={Boolean(deleteNoteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteNoteTarget(null);
+        }}
+        title="Delete note?"
+        description="This will permanently remove the selected material from the class notes."
+        confirmText="Delete"
+        onConfirm={confirmDeleteNote}
+        isConfirming={isDeletingNote}
+      />
 
       <Dialog
         open={pdfPreview.open}
