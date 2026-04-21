@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Loader2,
   AlertTriangle,
@@ -30,63 +31,18 @@ import {
   Inbox,
   BookOpen,
   Search,
-  Sparkles,
   GraduationCap,
   Users,
   Download,
   Eye,
-  X,
 } from "lucide-react";
 import { useGetMyClasses } from "@/hooks/tutor/useGetMyClasses";
 import { getClassNotesApi } from "@/services/classNote.api";
 import { formatDateWithDay } from "@/utils/classUtils";
 
-/* -------------------- Local Tabs -------------------- */
-function Tabs({ tabs, active, onTabChange, counts = {} }) {
-  return (
-    <div className="inline-flex items-center gap-1 rounded-2xl border border-border/60 bg-muted/60 p-1.5 backdrop-blur">
-      {tabs.map((tab) => {
-        const isActive = active === tab;
-        const count = counts[tab];
-        return (
-          <button
-            key={tab}
-            onClick={() => onTabChange(tab)}
-            type="button"
-            className={[
-              "group relative flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200",
-              isActive
-                ? "bg-background text-foreground shadow-md shadow-black/5 ring-1 ring-border/60"
-                : "text-muted-foreground hover:text-foreground",
-            ].join(" ")}
-          >
-            {tab === "Video" ? (
-              <Video className={`h-4 w-4 ${isActive ? "text-primary" : ""}`} />
-            ) : (
-              <FileText className={`h-4 w-4 ${isActive ? "text-primary" : ""}`} />
-            )}
-            <span>{tab}</span>
-            {typeof count === "number" && (
-              <span
-                className={[
-                  "ml-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums",
-                  isActive
-                    ? "bg-primary/10 text-primary"
-                    : "bg-background text-muted-foreground",
-                ].join(" ")}
-              >
-                {count}
-              </span>
-            )}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 /* -------------------- Stat Pill -------------------- */
-function StatPill({ icon: Icon, label, value, tone = "primary" }) {
+function StatPill({ icon, label, value, tone = "primary" }) {
+  const IconComponent = icon;
   const tones = {
     primary: "from-primary/10 to-primary/5 text-primary",
     blue: "from-blue-500/10 to-blue-500/5 text-blue-600 dark:text-blue-400",
@@ -98,7 +54,7 @@ function StatPill({ icon: Icon, label, value, tone = "primary" }) {
       className={`flex items-center gap-3 rounded-2xl border border-border/60 bg-gradient-to-br ${tones[tone]} px-4 py-3 backdrop-blur-sm transition-all hover:shadow-md`}
     >
       <div className="rounded-xl bg-background/80 p-2 shadow-sm">
-        <Icon className="h-4 w-4" />
+        <IconComponent className="h-4 w-4" />
       </div>
       <div>
         <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
@@ -120,7 +76,7 @@ export default function ViewMaterialPage() {
   const [selectedClass, setSelectedClass] = useState(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [pdfPreview, setPdfPreview] = useState({ open: false, url: "", name: "" });
-  const [materialTab, setMaterialTab] = useState("Video");
+  const [materialTab, setMaterialTab] = useState("video");
 
   const filteredClasses = useMemo(() => {
     if (!search.trim()) return classes;
@@ -159,12 +115,20 @@ export default function ViewMaterialPage() {
   });
 
   const notes = classNotesData?.notes || [];
+  const hasVideos = notes.some(
+    (note) => (Array.isArray(note.videos) && note.videos.length > 0) || note.lectureLink
+  );
+  const hasPdfs = notes.some(
+    (note) => (Array.isArray(note.pdfs) && note.pdfs.length > 0) || note.content
+  );
   const videoCount = notes.reduce(
-    (n, note) => n + (Array.isArray(note.videos) ? note.videos.length : 0),
+    (n, note) =>
+      n + ((Array.isArray(note.videos) && note.videos.length > 0) || note.lectureLink ? 1 : 0),
     0
   );
   const pdfCount = notes.reduce(
-    (n, note) => n + (Array.isArray(note.pdfs) ? note.pdfs.length : 0),
+    (n, note) =>
+      n + ((Array.isArray(note.pdfs) && note.pdfs.length > 0) || note.content ? 1 : 0),
     0
   );
 
@@ -428,192 +392,198 @@ export default function ViewMaterialPage() {
                 </div>
               ) : (
                 <>
-                  <Tabs
-                    tabs={["Video", "PDF"]}
-                    active={materialTab}
-                    onTabChange={setMaterialTab}
-                    counts={{ Video: videoCount, PDF: pdfCount }}
-                  />
+                  <Tabs value={materialTab} onValueChange={setMaterialTab} className="w-full">
+                    <TabsList className="grid h-11 w-full grid-cols-2 rounded-xl bg-muted/60 p-1">
+                      <TabsTrigger
+                        value="video"
+                        className="gap-2 rounded-lg text-sm font-medium text-muted-foreground transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                      >
+                        <Video className="h-4 w-4" />
+                        Videos
+                        {hasVideos && (
+                          <span className="ml-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                            {videoCount}
+                          </span>
+                        )}
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="pdf"
+                        className="gap-2 rounded-lg text-sm font-medium text-muted-foreground transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                      >
+                        <FileText className="h-4 w-4" />
+                        PDFs & Notes
+                        {hasPdfs && (
+                          <span className="ml-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                            {pdfCount}
+                          </span>
+                        )}
+                      </TabsTrigger>
+                    </TabsList>
 
-                  {materialTab === "Video" ? (
-                    notes.every(
-                      (note) =>
-                        !Array.isArray(note.videos) || note.videos.length === 0
-                    ) ? (
-                      <div className="rounded-2xl border border-dashed border-border/60 py-12 text-center text-sm text-muted-foreground">
-                        No uploaded video recordings.
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {notes.map((note, i) =>
-                          Array.isArray(note.videos) &&
-                          note.videos.length > 0 ? (
-                            <div
-                              key={note._id || i}
-                              className="group overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition-all hover:shadow-md"
-                            >
-                              <div className="flex items-start justify-between gap-3 border-b border-border/60 bg-muted/30 px-5 py-3">
-                                <div>
-                                  <h4 className="font-semibold text-foreground">
-                                    {note.title || "Class Note"}
-                                  </h4>
-                                  <p className="mt-0.5 text-xs text-muted-foreground">
-                                    {note.createdAt
-                                      ? new Date(
-                                          note.createdAt
-                                        ).toLocaleString()
-                                      : ""}
-                                  </p>
+                    <TabsContent value="video" className="mt-4 space-y-3">
+                      {!hasVideos ? (
+                        <div className="rounded-2xl border border-dashed border-border/60 py-12 text-center text-sm text-muted-foreground">
+                          No uploaded video recordings.
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {notes.map((note, i) =>
+                            Array.isArray(note.videos) && note.videos.length > 0 ? (
+                              <div
+                                key={note._id || i}
+                                className="group overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition-all hover:shadow-md"
+                              >
+                                <div className="flex items-start justify-between gap-3 border-b border-border/60 bg-muted/30 px-5 py-3">
+                                  <div>
+                                    <h4 className="font-semibold text-foreground">
+                                      {note.title || "Class Note"}
+                                    </h4>
+                                    <p className="mt-0.5 text-xs text-muted-foreground">
+                                      {note.createdAt
+                                        ? new Date(note.createdAt).toLocaleString()
+                                        : ""}
+                                    </p>
+                                  </div>
+                                  <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary ring-1 ring-primary/20">
+                                    Content Type : {note.contentType === "videoLecture"
+                                      ? "Video Lecture"
+                                      : "Class Note"}
+                                  </span>
                                 </div>
-                                <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary ring-1 ring-primary/20">
-                                  Content Type : {note.contentType === "videoLecture"
-                                    ? "Video Lecture"
-                                    : "Class Note"}
-                                </span>
-                              </div>
 
-                              <div className="space-y-3 px-5 py-4">
-                                {note.lectureLink ? (
-                                  <a
-                                    href={note.lectureLink}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-primary/15"
-                                  >
-                                    <ExternalLink className="h-3.5 w-3.5" />
-                                    Open Lecture Link
-                                  </a>
-                                ) : null}
+                                <div className="space-y-3 px-5 py-4">
+                                  {note.lectureLink ? (
+                                    <a
+                                      href={note.lectureLink}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-primary/15"
+                                    >
+                                      <ExternalLink className="h-3.5 w-3.5" />
+                                      Open Lecture Link
+                                    </a>
+                                  ) : null}
 
-                                <div>
-                                 
-                                  <div className="grid gap-2">
-                                    {note.videos.map((video, index) => {
-                                      const videoUrl =
-                                        typeof video === "string"
-                                          ? video
-                                          : video?.url;
-                                      const videoName =
-                                        typeof video === "string"
-                                          ? String(video).split("/").pop() ||
-                                            `Video ${index + 1}`
-                                          : video?.name ||
-                                            String(video?.url || "")
-                                              .split("/")
-                                              .pop() ||
-                                            `Video ${index + 1}`;
-                                      if (!videoUrl) return null;
-                                      return (
-                                        <a
-                                          key={index}
-                                          href={videoUrl}
-                                          target="_blank"
-                                          rel="noreferrer"
-                                          className="group/item flex items-center gap-3 rounded-xl border border-border/60 bg-gradient-to-r from-muted/30 to-transparent px-3 py-2.5 text-sm transition-all hover:border-primary/30 hover:from-primary/5"
-                                        >
-                                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover/item:bg-primary group-hover/item:text-primary-foreground">
-                                            <PlayCircle className="h-4 w-4" />
-                                          </div>
-                                          <span className="flex-1 truncate font-medium">
-                                            {videoName}
-                                          </span>
-                                          <ExternalLink className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover/item:translate-x-0.5 group-hover/item:text-primary" />
-                                        </a>
-                                      );
-                                    })}
+                                  <div>
+                                    <div className="grid gap-2">
+                                      {note.videos.map((video, index) => {
+                                        const videoUrl =
+                                          typeof video === "string" ? video : video?.url;
+                                        const videoName =
+                                          typeof video === "string"
+                                            ? String(video).split("/").pop() || `Video ${index + 1}`
+                                            : video?.name ||
+                                              String(video?.url || "").split("/").pop() ||
+                                              `Video ${index + 1}`;
+                                        if (!videoUrl) return null;
+                                        return (
+                                          <a
+                                            key={index}
+                                            href={videoUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="group/item flex items-center gap-3 rounded-xl border border-border/60 bg-gradient-to-r from-muted/30 to-transparent px-3 py-2.5 text-sm transition-all hover:border-primary/30 hover:from-primary/5"
+                                          >
+                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover/item:bg-primary group-hover/item:text-primary-foreground">
+                                              <PlayCircle className="h-4 w-4" />
+                                            </div>
+                                            <span className="flex-1 truncate font-medium">
+                                              {videoName}
+                                            </span>
+                                            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover/item:translate-x-0.5 group-hover/item:text-primary" />
+                                          </a>
+                                        );
+                                      })}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          ) : null
-                        )}
-                      </div>
-                    )
-                  ) : notes.every(
-                      (note) =>
-                        !Array.isArray(note.pdfs) || note.pdfs.length === 0
-                    ) ? (
-                    <div className="rounded-2xl border border-dashed border-border/60 py-12 text-center text-sm text-muted-foreground">
-                      No PDF attached to any material.
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {notes.map((note, i) =>
-                        Array.isArray(note.pdfs) && note.pdfs.length > 0 ? (
-                          <div
-                            key={note._id || i}
-                            className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition-all hover:shadow-md"
-                          >
-                            <div className="flex items-start justify-between gap-3 border-b border-border/60 bg-muted/30 px-5 py-3">
-                              <div>
-                                <h4 className="font-semibold text-foreground">
-                                  {note.title || "Class Note"}
-                                </h4>
-                                <p className="mt-0.5 text-xs text-muted-foreground">
-                                  {note.createdAt
-                                    ? new Date(note.createdAt).toLocaleString()
-                                    : ""}
-                                </p>
-                              </div>
-                              <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary ring-1 ring-primary/20">
-                               Content Type : {note.contentType === "videoLecture"
-                                  ? "Video Lecture"
-                                  : "Class Note"}
-                              </span>
-                            </div>
+                            ) : null
+                          )}
+                        </div>
+                      )}
+                    </TabsContent>
 
-                            <div className="space-y-3 px-5 py-4">
-                              {note.content ? (
-                                <p className="whitespace-pre-line rounded-xl bg-muted/40 p-3 text-sm leading-relaxed text-foreground/80">
-                                  {note.content}
-                                </p>
-                              ) : null}
+                    <TabsContent value="pdf" className="mt-4 space-y-3">
+                      {!hasPdfs ? (
+                        <div className="rounded-2xl border border-dashed border-border/60 py-12 text-center text-sm text-muted-foreground">
+                          No PDF attached to any material.
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {notes.map((note, i) =>
+                            Array.isArray(note.pdfs) && note.pdfs.length > 0 ? (
+                              <div
+                                key={note._id || i}
+                                className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition-all hover:shadow-md"
+                              >
+                                <div className="flex items-start justify-between gap-3 border-b border-border/60 bg-muted/30 px-5 py-3">
+                                  <div>
+                                    <h4 className="font-semibold text-foreground">
+                                      {note.title || "Class Note"}
+                                    </h4>
+                                    <p className="mt-0.5 text-xs text-muted-foreground">
+                                      {note.createdAt
+                                        ? new Date(note.createdAt).toLocaleString()
+                                        : ""}
+                                    </p>
+                                  </div>
+                                  <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary ring-1 ring-primary/20">
+                                    Content Type : {note.contentType === "videoLecture"
+                                      ? "Video Lecture"
+                                      : "Class Note"}
+                                  </span>
+                                </div>
 
-                              <div>
-                               
-                                <div className="grid gap-2 sm:grid-cols-2">
-                                  {note.pdfs.map((pdf, index) => {
-                                    const pdfUrl =
-                                      typeof pdf === "string" ? pdf : pdf?.url;
-                                    const pdfName =
-                                      typeof pdf === "string"
-                                        ? String(pdf).split("/").pop() ||
-                                          `PDF ${index + 1}`
-                                        : pdf?.name ||
-                                          String(pdf?.url || "")
-                                            .split("/")
-                                            .pop() ||
-                                          `PDF ${index + 1}`;
-                                    if (!pdfUrl) return null;
-                                    return (
-                                      <button
-                                        key={index}
-                                        onClick={() =>
-                                          openPdfPreview({
-                                            url: pdfUrl,
-                                            name: pdfName,
-                                          })
-                                        }
-                                        className="group/pdf flex items-center gap-3 rounded-xl border border-border/60 bg-gradient-to-r from-muted/30 to-transparent px-3 py-2.5 text-left text-sm transition-all hover:border-blue-300 hover:from-blue-50/60 dark:hover:border-blue-800 dark:hover:from-blue-950/30"
-                                      >
-                                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 ring-1 ring-blue-200/60 transition-colors group-hover/pdf:bg-blue-600 group-hover/pdf:text-white dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-900/60">
-                                          <FileText className="h-4 w-4" />
-                                        </div>
-                                        <span className="flex-1 truncate font-medium text-foreground">
-                                          {pdfName}
-                                        </span>
-                                        <Eye className="h-3.5 w-3.5 text-muted-foreground transition-colors group-hover/pdf:text-blue-600" />
-                                      </button>
-                                    );
-                                  })}
+                                <div className="space-y-3 px-5 py-4">
+                                  {note.content ? (
+                                    <p className="whitespace-pre-line rounded-xl bg-muted/40 p-3 text-sm leading-relaxed text-foreground/80">
+                                      {note.content}
+                                    </p>
+                                  ) : null}
+
+                                  <div>
+                                    <div className="grid gap-2 sm:grid-cols-2">
+                                      {note.pdfs.map((pdf, index) => {
+                                        const pdfUrl = typeof pdf === "string" ? pdf : pdf?.url;
+                                        const pdfName =
+                                          typeof pdf === "string"
+                                            ? String(pdf).split("/").pop() || `PDF ${index + 1}`
+                                            : pdf?.name ||
+                                              String(pdf?.url || "").split("/").pop() ||
+                                              `PDF ${index + 1}`;
+                                        if (!pdfUrl) return null;
+                                        return (
+                                          <button
+                                            key={index}
+                                            onClick={() =>
+                                              openPdfPreview({
+                                                url: pdfUrl,
+                                                name: pdfName,
+                                              })
+                                            }
+                                            className="group/pdf flex items-center gap-3 rounded-xl border border-border/60 bg-gradient-to-r from-muted/30 to-transparent px-3 py-2.5 text-left text-sm transition-all hover:border-blue-300 hover:from-blue-50/60 dark:hover:border-blue-800 dark:hover:from-blue-950/30"
+                                          >
+                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 ring-1 ring-blue-200/60 transition-colors group-hover/pdf:bg-blue-600 group-hover/pdf:text-white dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-900/60">
+                                              <FileText className="h-4 w-4" />
+                                            </div>
+                                            <span className="flex-1 truncate font-medium text-foreground">
+                                              {pdfName}
+                                            </span>
+                                            <Eye className="h-3.5 w-3.5 text-muted-foreground transition-colors group-hover/pdf:text-blue-600" />
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </div>
-                        ) : null
+                            ) : null
+                          )}
+                        </div>
                       )}
-                    </div>
-                  )}
+                    </TabsContent>
+                  </Tabs>
                 </>
               )}
             </div>
