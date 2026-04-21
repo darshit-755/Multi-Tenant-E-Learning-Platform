@@ -17,7 +17,7 @@ import { classReminderStudentTemplate } from "../../templates/classReminderStude
 import { classReminderTutorTemplate } from "../../templates/classReminderTutorTemplate.js";
 
 const MAIL_PROVIDER = (process.env.MAIL_PROVIDER || "nodemailer").toLowerCase();
-const RESEND_DUMMY_MAIL = process.env.RESEND_DUMMY_MAIL || "darshitp088@gmail.com";
+const RESEND_DUMMY_MAIL = process.env.RESEND_DUMMY_MAIL || "savaraakshay2366@gmail.com";
 
 const getFromEmail = () => {
   return process.env.FROM_EMAIL || process.env.EMAIL_USER;

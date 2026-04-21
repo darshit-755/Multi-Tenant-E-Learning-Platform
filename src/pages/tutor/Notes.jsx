@@ -1,9 +1,9 @@
-
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,57 +11,26 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  BookOpen, Video, FileText, Plus, Eye, Calendar, Clock, MoreHorizontal,
+  Pencil, Trash2, ExternalLink, FileIcon, Loader2, Inbox,
+} from "lucide-react";
 import ConfirmActionDialog from "@/components/common/ConfirmActionDialog";
 import { useGetMyClasses } from "@/hooks/tutor/useGetMyClasses";
 import { addClassNoteApi, getClassNotesApi, deleteClassNoteApi } from "@/services/classNote.api";
 import { toast } from "sonner";
-
-// Simple Tabs component for local use
-function Tabs({ tabs, active, onTabChange }) {
-  return (
-    <div className="mb-4 flex border-b">
-      {tabs.map((tab) => (
-        <button
-          key={tab}
-          className={`px-4 py-2 -mb-px border-b-2 font-medium text-sm focus:outline-none ${
-            active === tab
-              ? 'border-blue-600 text-blue-700'
-              : 'border-transparent text-slate-500 hover:text-blue-600'
-          }`}
-          onClick={() => onTabChange(tab)}
-          type="button"
-        >
-          {tab}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 
 export default function TutorNotesPage() {
   const queryClient = useQueryClient();
@@ -71,32 +40,19 @@ export default function TutorNotesPage() {
   const [selectedClass, setSelectedClass] = useState(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  const [pdfPreview, setPdfPreview] = useState({
-    open: false,
-    url: "",
-    name: "",
-  });
-  const [materialTab, setMaterialTab] = useState("Video");
+  const [pdfPreview, setPdfPreview] = useState({ open: false, url: "", name: "" });
+  const [materialTab, setMaterialTab] = useState("video");
   const [editNoteId, setEditNoteId] = useState(null);
   const [deleteNoteTarget, setDeleteNoteTarget] = useState(null);
   const [isDeletingNote, setIsDeletingNote] = useState(false);
 
   const {
-    register,
-    handleSubmit,
-    reset,
-    watch,
-    setError,
-    clearErrors,
+    register, handleSubmit, reset, watch, setError, clearErrors,
     formState: { errors },
   } = useForm({
     defaultValues: {
-      contentType: "note",
-      title: "",
-      content: "",
-      lectureLink: "",
-      notePdfs: null,
-      lectureVideos: null,
+      contentType: "note", title: "", content: "",
+      lectureLink: "", notePdfs: null, lectureVideos: null,
     },
   });
 
@@ -109,10 +65,8 @@ export default function TutorNotesPage() {
   const notesQueryKey = ["class-notes", selectedClass?._id];
 
   const {
-    data: classNotesData,
-    isLoading: isNotesLoading,
-    isError: isNotesError,
-    refetch: refetchNotes,
+    data: classNotesData, isLoading: isNotesLoading,
+    isError: isNotesError, refetch: refetchNotes,
   } = useQuery({
     queryKey: notesQueryKey,
     queryFn: async () => {
@@ -122,7 +76,6 @@ export default function TutorNotesPage() {
     enabled: Boolean(selectedClass?._id) && (isViewDialogOpen || isAddDialogOpen),
   });
 
-  // Delete note handler (must be at component level, not inside another function)
   const handleDeleteNote = (note) => {
     if (!selectedClass?._id || !note?._id) return;
     setDeleteNoteTarget(note);
@@ -130,7 +83,6 @@ export default function TutorNotesPage() {
 
   const confirmDeleteNote = async () => {
     if (!selectedClass?._id || !deleteNoteTarget?._id) return;
-
     try {
       setIsDeletingNote(true);
       await deleteClassNoteApi(selectedClass._id, deleteNoteTarget._id);
@@ -163,25 +115,20 @@ export default function TutorNotesPage() {
   const openAddDialog = (cls, contentType = "note", note = null) => {
     setSelectedClass(cls);
     if (note) {
-      // Editing existing note
       setEditNoteId(note._id);
       reset({
         contentType: note.contentType,
         title: cls?.topic || "",
         content: note.content || "",
         lectureLink: note.lectureLink || "",
-        notePdfs: null,
-        lectureVideos: null,
+        notePdfs: null, lectureVideos: null,
       });
     } else {
       setEditNoteId(null);
       reset({
-        contentType,
-        title: cls?.topic || "",
-        content: "",
-        lectureLink: "",
-        notePdfs: null,
-        lectureVideos: null,
+        contentType, title: cls?.topic || "",
+        content: "", lectureLink: "",
+        notePdfs: null, lectureVideos: null,
       });
     }
     setIsAddDialogOpen(true);
@@ -194,11 +141,7 @@ export default function TutorNotesPage() {
 
   const openPdfPreview = ({ url, name }) => {
     if (!url) return;
-    setPdfPreview({
-      open: true,
-      url,
-      name: name || "PDF Preview",
-    });
+    setPdfPreview({ open: true, url, name: name || "PDF Preview" });
   };
 
   const onAddNoteSubmit = (values) => {
@@ -210,218 +153,259 @@ export default function TutorNotesPage() {
     const videoFiles = values.lectureVideos ? Array.from(values.lectureVideos) : [];
 
     if (contentType === "note" && !content && files.length === 0) {
-      toast.error("Add note content or at least one PDF");
-      return;
+      toast.error("Add note content or at least one PDF"); return;
     }
-
     if (contentType === "videoLecture" && !lectureLink && videoFiles.length === 0) {
-      toast.error("Add lecture link or at least one video recording");
-      return;
+      toast.error("Add lecture link or at least one video recording"); return;
     }
 
-    const nonPdfFile = files.find((file) => file.type !== "application/pdf");
+    const nonPdfFile = files.find((f) => f.type !== "application/pdf");
     if (nonPdfFile) {
-      setError("notePdfs", {
-        type: "validate",
-        message: "Only PDF files are allowed",
-      });
-      toast.error("Only PDF files are allowed");
-      return;
+      setError("notePdfs", { type: "validate", message: "Only PDF files are allowed" });
+      toast.error("Only PDF files are allowed"); return;
     }
-
-    const nonVideoFile = videoFiles.find((file) => !file.type.startsWith("video/"));
+    const nonVideoFile = videoFiles.find((f) => !f.type.startsWith("video/"));
     if (nonVideoFile) {
-      setError("lectureVideos", {
-        type: "validate",
-        message: "Only video files are allowed",
-      });
-      toast.error("Only video files are allowed");
-      return;
+      setError("lectureVideos", { type: "validate", message: "Only video files are allowed" });
+      toast.error("Only video files are allowed"); return;
     }
 
-    clearErrors("notePdfs");
-    clearErrors("lectureVideos");
+    clearErrors("notePdfs"); clearErrors("lectureVideos");
 
     const payload = new FormData();
     payload.append("contentType", contentType);
     payload.append("title", title);
     payload.append("content", content);
     payload.append("lectureLink", lectureLink);
-    files.forEach((file) => payload.append("notePdfs", file));
-    videoFiles.forEach((file) => payload.append("lectureVideos", file));
+    files.forEach((f) => payload.append("notePdfs", f));
+    videoFiles.forEach((f) => payload.append("lectureVideos", f));
 
-    // If editing, delete the old note first, then add new
     if (editNoteId) {
       deleteClassNoteApi(selectedClass._id, editNoteId)
-        .then(() => {
-          addNoteMutation.mutate(payload);
-        })
-        .catch(() => {
-          toast.error("Failed to replace old material");
-        });
+        .then(() => addNoteMutation.mutate(payload))
+        .catch(() => toast.error("Failed to replace old material"));
     } else {
       addNoteMutation.mutate(payload);
     }
   };
 
   if (isLoading) {
-    return <p className="text-sm text-muted-foreground">Loading classes...</p>;
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span className="text-sm">Loading classes...</span>
+        </div>
+      </div>
+    );
   }
 
   if (isError) {
     return (
-      <p className="text-sm text-red-600">
-        Failed to load classes for notes page.
-      </p>
+      <div className="mx-auto max-w-md mt-20 rounded-xl border border-destructive/20 bg-destructive/5 p-6 text-center">
+        <p className="text-sm text-destructive">Failed to load classes for notes page.</p>
+      </div>
     );
   }
 
+  const notes = classNotesData?.notes || [];
+  const hasVideos = notes.some((n) => Array.isArray(n.videos) && n.videos.length > 0 || n.lectureLink);
+  const hasPdfs = notes.some((n) => Array.isArray(n.pdfs) && n.pdfs.length > 0 || n.content);
+
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-4">
-      <h1 className="text-2xl font-semibold text-slate-800">Class Notes</h1>
-
-      <Card>
-        <CardContent className="p-4">
-          {classes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No classes found. Notes will appear once classes are assigned.
-            </p>
-          ) : (
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Topic</TableHead>
-                    <TableHead>Subject</TableHead>
-                    <TableHead>Batch</TableHead>
-                    <TableHead>Schedule</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {classes.map((cls) => (
-                    <TableRow key={cls._id}>
-                      <TableCell className="font-medium">{cls.topic || "Class Session"}</TableCell>
-                      <TableCell>{cls.subjectId?.name || "-"}</TableCell>
-                      <TableCell>{cls.batchId?.name || "-"}</TableCell>
-                      <TableCell>
-                        <div className="text-xs">
-                          <div>{cls.date || "-"}</div>
-                          <div className="text-muted-foreground">
-                            {cls.startTime
-                              ? `${cls.startTime} (${cls.duration || 0} min)`
-                              : "-"}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-2">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="sm">Add Material</Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start">
-                              <DropdownMenuItem onClick={() => openAddDialog(cls, "note")}>
-                                Add Note
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => openAddDialog(cls, "videoLecture")}>
-                                Add Video Lecture
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => openViewDialog(cls)}
-                          >
-                            View Note
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <BookOpen className="h-5 w-5" />
+              </div>
+              <h1 className="text-2xl font-semibold tracking-tight">Class Notes</h1>
             </div>
-          )}
-        </CardContent>
-      </Card>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Manage notes, PDFs and video lectures for all your classes.
+            </p>
+          </div>
+          <Badge variant="secondary" className="w-fit gap-1.5 px-3 py-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+            {classes.length} {classes.length === 1 ? "class" : "classes"}
+          </Badge>
+        </div>
 
+        {/* Main card */}
+        <Card className="border-border/60 shadow-sm">
+          <CardContent className="p-0">
+            {classes.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+                  <Inbox className="h-7 w-7 text-muted-foreground" />
+                </div>
+                <h3 className="mt-4 text-base font-medium">No classes yet</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Notes will appear once classes are assigned.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/40 hover:bg-muted/40">
+                      <TableHead className="font-medium">Topic</TableHead>
+                      <TableHead className="font-medium">Subject</TableHead>
+                      <TableHead className="font-medium">Batch</TableHead>
+                      <TableHead className="font-medium">Schedule</TableHead>
+                      <TableHead className="text-right font-medium">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {classes.map((cls) => (
+                      <TableRow key={cls._id} className="group">
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                              <FileText className="h-4 w-4" />
+                            </div>
+                            <span className="font-medium">{cls.topic || "Class Session"}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-normal">
+                            {cls.subjectId?.name || "—"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {cls.batchId?.name || "—"}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-0.5 text-sm">
+                            <div className="flex items-center gap-1.5 text-foreground">
+                              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                              {cls.date || "—"}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <Clock className="h-3 w-3" />
+                              {cls.startTime
+                                ? `${cls.startTime} · ${cls.duration || 0} min`
+                                : "—"}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-2">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="sm" className="h-8 gap-1.5">
+                                  <Plus className="h-3.5 w-3.5" />
+                                  Add
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-44">
+                                <DropdownMenuItem onClick={() => openAddDialog(cls, "note")}>
+                                  <FileText className="mr-2 h-4 w-4" />
+                                  Add Note
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openAddDialog(cls, "videoLecture")}>
+                                  <Video className="mr-2 h-4 w-4" />
+                                  Add Video Lecture
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 gap-1.5"
+                              onClick={() => openViewDialog(cls)}
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                              View
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Add / Edit Dialog */}
       <Dialog
         open={isAddDialogOpen}
         onOpenChange={(open) => {
           setIsAddDialogOpen(open);
           if (!open) {
             reset({
-              contentType: "note",
-              title: "",
-              content: "",
-              lectureLink: "",
-              notePdfs: null,
-              lectureVideos: null,
+              contentType: "note", title: "", content: "",
+              lectureLink: "", notePdfs: null, lectureVideos: null,
             });
           }
         }}
       >
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Add Content</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              {editNoteId ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+              {editNoteId ? "Edit Material" : "Add Material"}
+            </DialogTitle>
             <DialogDescription>
               {selectedClass
-                ? `Add content for ${selectedClass.topic || "Class Session"}`
-                : "Add content"}
+                ? `For "${selectedClass.topic || "Class Session"}"`
+                : "Add content for the class"}
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit(onAddNoteSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onAddNoteSubmit)} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="content-type">Content Type</Label>
+              <Label>Content Type</Label>
               <Select
                 value={watchedContentType}
                 onValueChange={(value) => {
                   const nextType = value === "videoLecture" ? "videoLecture" : "note";
                   reset({
-                    contentType: nextType,
-                    title: "",
-                    content: "",
-                    lectureLink: "",
-                    notePdfs: null,
-                    lectureVideos: null,
+                    contentType: nextType, title: "", content: "",
+                    lectureLink: "", notePdfs: null, lectureVideos: null,
                   });
                 }}
               >
-                <SelectTrigger id="content-type" className="w-full">
-                  <SelectValue placeholder="Select content type" />
+                <SelectTrigger>
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="note">Class Note</SelectItem>
-                  <SelectItem value="videoLecture">Video Lecture</SelectItem>
+                  <SelectItem value="note">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" /> Class Note
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="videoLecture">
+                    <div className="flex items-center gap-2">
+                      <Video className="h-4 w-4" /> Video Lecture
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="note-title">Title</Label>
-              <Input
-                id="note-title"
-                value={selectedClass?.topic || ""}
-                readOnly
-                {...register("title")}
-              />
+              <Label htmlFor="title">Title</Label>
+              <Input id="title" placeholder="Enter title" {...register("title")} />
             </div>
 
             {watchedContentType === "note" ? (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="note-content">Note Content</Label>
-                  <textarea
-                    id="note-content"
-                    className="w-full min-h-32 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                    placeholder="Write your class note here..."
+                  <Label htmlFor="content">Note Content</Label>
+                  <Textarea
+                    id="content"
+                    rows={4}
+                    placeholder="Write the note..."
                     {...register("content")}
                   />
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="note-pdfs">PDFs (optional)</Label>
                   <Input
@@ -429,16 +413,17 @@ export default function TutorNotesPage() {
                     type="file"
                     accept="application/pdf"
                     multiple
+                    className="cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1 file:text-xs file:font-medium"
                     {...register("notePdfs")}
                   />
-                  {selectedPdfFiles.length > 0 ? (
+                  {selectedPdfFiles.length > 0 && (
                     <p className="text-xs text-muted-foreground">
-                      Selected: {selectedPdfFiles.map((file) => file.name).join(", ")}
+                      {selectedPdfFiles.length} file{selectedPdfFiles.length > 1 ? "s" : ""} selected
                     </p>
-                  ) : null}
-                  {errors.notePdfs?.message ? (
-                    <p className="text-xs text-red-600">{errors.notePdfs.message}</p>
-                  ) : null}
+                  )}
+                  {errors.notePdfs?.message && (
+                    <p className="text-xs text-destructive">{errors.notePdfs.message}</p>
+                  )}
                 </div>
               </>
             ) : (
@@ -452,7 +437,6 @@ export default function TutorNotesPage() {
                     {...register("lectureLink")}
                   />
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="lecture-videos">Video Recording (optional)</Label>
                   <Input
@@ -460,22 +444,31 @@ export default function TutorNotesPage() {
                     type="file"
                     accept="video/*"
                     multiple
+                    className="cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1 file:text-xs file:font-medium"
                     {...register("lectureVideos")}
                   />
-                  {selectedVideoFiles.length > 0 ? (
+                  {selectedVideoFiles.length > 0 && (
                     <p className="text-xs text-muted-foreground">
-                      Selected: {selectedVideoFiles.map((file) => file.name).join(", ")}
+                      {selectedVideoFiles.length} file{selectedVideoFiles.length > 1 ? "s" : ""} selected
                     </p>
-                  ) : null}
-                  {errors.lectureVideos?.message ? (
-                    <p className="text-xs text-red-600">{errors.lectureVideos.message}</p>
-                  ) : null}
+                  )}
+                  {errors.lectureVideos?.message && (
+                    <p className="text-xs text-destructive">{errors.lectureVideos.message}</p>
+                  )}
                 </div>
               </>
             )}
 
             <DialogFooter>
-              <Button type="submit" disabled={addNoteMutation.isPending}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAddDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={addNoteMutation.isPending} className="gap-1.5">
+                {addNoteMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 {addNoteMutation.isPending ? "Saving..." : "Save"}
               </Button>
             </DialogFooter>
@@ -483,6 +476,7 @@ export default function TutorNotesPage() {
         </DialogContent>
       </Dialog>
 
+      {/* View Notes Dialog */}
       <Dialog
         open={isViewDialogOpen}
         onOpenChange={(open) => {
@@ -495,125 +489,207 @@ export default function TutorNotesPage() {
       >
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>View Notes</DialogTitle>
+            <DialogTitle>Class Materials</DialogTitle>
             <DialogDescription>
               {selectedClass
-                ? `All notes for ${selectedClass.topic || "Class Session"}`
+                ? `Browse all materials for "${selectedClass.topic || "Class Session"}"`
                 : "Class notes"}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="max-h-[60vh] overflow-y-auto space-y-3">
+          <div className="max-h-[65vh] overflow-y-auto pr-1">
             {isNotesLoading ? (
-              <p className="text-sm text-muted-foreground">Loading notes...</p>
+              <div className="flex items-center justify-center py-12 text-muted-foreground">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <span className="text-sm">Loading notes...</span>
+              </div>
             ) : isNotesError ? (
-              <div className="space-y-2">
-                <p className="text-sm text-red-600">Failed to fetch notes.</p>
-                <Button variant="outline" size="sm" onClick={() => refetchNotes()}>
+              <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-center">
+                <p className="text-sm text-destructive">Failed to fetch notes.</p>
+                <Button variant="outline" size="sm" className="mt-3" onClick={() => refetchNotes()}>
                   Retry
                 </Button>
               </div>
-            ) : (classNotesData?.notes || []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No notes yet for this class.
-              </p>
+            ) : notes.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                  <Inbox className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  No materials yet for this class.
+                </p>
+              </div>
             ) : (
-              <>
-                <Tabs
-                  tabs={["Video", "PDF"]}
-                  active={materialTab}
-                  onTabChange={setMaterialTab}
-                />
-                {materialTab === "Video" ? (
-                  (classNotesData?.notes || []).every(
-                    (note) => !Array.isArray(note.videos) || note.videos.length === 0
-                  ) ? (
-                    <p className="text-xs text-slate-500">No uploaded video recordings.</p>
+              <Tabs value={materialTab} onValueChange={setMaterialTab} className="w-full">
+  <TabsList className="grid h-11 w-full grid-cols-2 rounded-xl bg-muted/60 p-1">
+    <TabsTrigger
+      value="video"
+      className="gap-2 rounded-lg text-sm font-medium text-muted-foreground transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+    >
+      <Video className="h-4 w-4" />
+      Videos
+      {hasVideos && (
+        <span className="ml-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+          {notes.filter((n) => (Array.isArray(n.videos) && n.videos.length > 0) || n.lectureLink).length}
+        </span>
+      )}
+    </TabsTrigger>
+    <TabsTrigger
+      value="pdf"
+      className="gap-2 rounded-lg text-sm font-medium text-muted-foreground transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+    >
+      <FileIcon className="h-4 w-4" />
+      PDFs & Notes
+      {hasPdfs && (
+        <span className="ml-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+          {notes.filter((n) => (Array.isArray(n.pdfs) && n.pdfs.length > 0) || n.content).length}
+        </span>
+      )}
+    </TabsTrigger>
+  </TabsList>
+
+                <TabsContent value="video" className="mt-4 space-y-3">
+                  {!hasVideos ? (
+                    <p className="py-6 text-center text-sm text-muted-foreground">
+                      No video recordings uploaded.
+                    </p>
                   ) : (
-                    (classNotesData?.notes || []).map((note) =>
-                      Array.isArray(note.videos) && note.videos.length > 0 ? (
-                        <div key={note._id + "-videos"} className="rounded-md border p-3 bg-slate-50">
-                          <div className="flex items-center justify-between gap-2">
-                            <h3 className="font-medium text-slate-900">{note.title || "Class Note"}</h3>
-                            <span className="text-xs text-slate-500">
-                              {note.createdAt ? new Date(note.createdAt).toLocaleString() : ""}
-                            </span>
-                          </div>
-                          <div className="flex gap-2 my-2 justify-end">
-                            <Button size="xs" variant="outline" onClick={() => openAddDialog(selectedClass, note.contentType, note)}>Edit</Button>
-                            <Button size="xs" variant="destructive" onClick={() => handleDeleteNote(note)}>Delete</Button>
-                          </div>
-                          <div className="mt-1 text-xs font-medium text-slate-500">
-                            {note.contentType === "videoLecture" ? "Video Lecture" : "Class Note"}
-                          </div>
-                          {note.lectureLink ? (
-                            <div className="mt-3">
-                              <a
-                                href={note.lectureLink}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-xs text-blue-700 hover:underline"
-                              >
-                                Open Lecture Link
-                              </a>
+                    notes.map((note) =>
+                      (Array.isArray(note.videos) && note.videos.length > 0) || note.lectureLink ? (
+                        <div
+                          key={note._id + "-videos"}
+                          className="rounded-xl border bg-card p-4 transition-colors hover:border-primary/30"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <h3 className="font-medium">{note.title || "Class Note"}</h3>
+                              <div className="mt-1 flex flex-wrap items-center gap-2">
+                                <Badge variant="secondary" className="text-[10px]">
+                                  {note.contentType === "videoLecture" ? "Video Lecture" : "Note"}
+                                </Badge>
+                                {note.createdAt && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(note.createdAt).toLocaleString()}
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                          ) : null}
-                          <div className="mt-3 space-y-3">
-                            <p className="text-xs font-medium text-slate-600">Video Recordings</p>
-                            {note.videos.map((video, index) => {
-                              const videoUrl = typeof video === "string" ? video : video?.url;
-                              const videoName =
-                                typeof video === "string"
-                                  ? String(video).split("/").pop() || `Video ${index + 1}`
-                                  : video?.name || String(video?.url || "").split("/").pop() || `Video ${index + 1}`;
-                              if (!videoUrl) return null;
-                              return (
-                                <div key={`${note._id}-video-${index}`} className="rounded-md border p-2 bg-white">
-                                  <p className="mb-2 text-xs text-slate-700">{videoName}</p>
-                                  <video className="w-full rounded-md" controls src={videoUrl} preload="metadata" />
-                                </div>
-                              );
-                            })}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => openAddDialog(selectedClass, note.contentType, note)}>
+                                  <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => handleDeleteNote(note)}
+                                >
+                                  <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
+
+                          {note.lectureLink && (
+                            <a
+                              href={note.lectureLink}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                            >
+                              <ExternalLink className="h-3 w-3" /> Open Lecture Link
+                            </a>
+                          )}
+
+                          {Array.isArray(note.videos) && note.videos.length > 0 && (
+                            <div className="mt-3 space-y-2">
+                              {note.videos.map((video, index) => {
+                                const videoUrl = typeof video === "string" ? video : video?.url;
+                                if (!videoUrl) return null;
+                                const videoName =
+                                  typeof video === "string"
+                                    ? String(video).split("/").pop() || `Video ${index + 1}`
+                                    : video?.name || String(video?.url || "").split("/").pop() || `Video ${index + 1}`;
+                                return (
+                                  <div key={`${note._id}-video-${index}`} className="overflow-hidden rounded-lg border bg-background">
+                                    <video className="w-full" controls src={videoUrl} preload="metadata" />
+                                    <p className="px-3 py-2 text-xs text-muted-foreground truncate">{videoName}</p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       ) : null
                     )
-                  )
-                ) : (
-                  (classNotesData?.notes || []).every(
-                    (note) => !Array.isArray(note.pdfs) || note.pdfs.length === 0
-                  ) ? (
-                    <p className="text-xs text-slate-500">No PDF attached to any note.</p>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="pdf" className="mt-4 space-y-3">
+                  {!hasPdfs ? (
+                    <p className="py-6 text-center text-sm text-muted-foreground">
+                      No notes or PDFs available.
+                    </p>
                   ) : (
-                    (classNotesData?.notes || []).map((note) =>
-                      Array.isArray(note.pdfs) && note.pdfs.length > 0 ? (
-                        <div key={note._id + "-pdfs"} className="rounded-md border p-3 bg-slate-50">
-                          <div className="flex items-center justify-between gap-2">
-                            <h3 className="font-medium text-slate-900">{note.title || "Class Note"}</h3>
-                            <span className="text-xs text-slate-500">
-                              {note.createdAt ? new Date(note.createdAt).toLocaleString() : ""}
-                            </span>
+                    notes.map((note) =>
+                      (Array.isArray(note.pdfs) && note.pdfs.length > 0) || note.content ? (
+                        <div
+                          key={note._id + "-pdfs"}
+                          className="rounded-xl border bg-card p-4 transition-colors hover:border-primary/30"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <h3 className="font-medium">{note.title || "Class Note"}</h3>
+                              <div className="mt-1 flex flex-wrap items-center gap-2">
+                                <Badge variant="secondary" className="text-[10px]">
+                                  {note.contentType === "videoLecture" ? "Video Lecture" : "Note"}
+                                </Badge>
+                                {note.createdAt && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(note.createdAt).toLocaleString()}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => openAddDialog(selectedClass, note.contentType, note)}>
+                                  <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => handleDeleteNote(note)}
+                                >
+                                  <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
-                          <div className="flex gap-2 my-2 justify-end">
-                            <Button size="xs" variant="outline" onClick={() => openAddDialog(selectedClass, note.contentType, note)}>Edit</Button>
-                            <Button size="xs" variant="destructive" onClick={() => handleDeleteNote(note)}>Delete</Button>
-                          </div>
-                          <div className="mt-1 text-xs font-medium text-slate-500">
-                            {note.contentType === "videoLecture" ? "Video Lecture" : "Class Note"}
-                          </div>
-                          {note.content ? (
-                            <p className="mt-2 text-sm whitespace-pre-wrap text-slate-700">{note.content}</p>
-                          ) : null}
-                          <div className="mt-3 space-y-2">
-                            <p className="text-xs font-medium text-slate-600">PDF Attachments</p>
-                            <div className="flex flex-wrap gap-2">
+
+                          {note.content && (
+                            <p className="mt-3 whitespace-pre-wrap rounded-lg bg-muted/50 p-3 text-sm leading-relaxed">
+                              {note.content}
+                            </p>
+                          )}
+
+                          {Array.isArray(note.pdfs) && note.pdfs.length > 0 && (
+                            <div className="mt-3 flex flex-wrap gap-2">
                               {note.pdfs.map((pdf, index) => {
                                 const pdfUrl = typeof pdf === "string" ? pdf : pdf?.url;
+                                if (!pdfUrl) return null;
                                 const pdfName =
                                   typeof pdf === "string"
                                     ? String(pdf).split("/").pop() || `PDF ${index + 1}`
                                     : pdf?.name || String(pdf?.url || "").split("/").pop() || `PDF ${index + 1}`;
-                                if (!pdfUrl) return null;
                                 return (
                                   <Button
                                     key={`${note._id}-pdf-${index}`}
@@ -621,20 +697,21 @@ export default function TutorNotesPage() {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => openPdfPreview({ url: pdfUrl, name: pdfName })}
-                                    className="h-auto py-1 text-xs text-blue-700 border-blue-200 hover:bg-blue-50"
+                                    className="h-8 gap-1.5 text-xs"
                                   >
-                                    View PDF: {pdfName}
+                                    <FileIcon className="h-3.5 w-3.5 text-primary" />
+                                    <span className="max-w-[180px] truncate">{pdfName}</span>
                                   </Button>
                                 );
                               })}
                             </div>
-                          </div>
+                          )}
                         </div>
                       ) : null
                     )
-                  )
-                )}
-              </>
+                  )}
+                </TabsContent>
+              </Tabs>
             )}
           </div>
         </DialogContent>
@@ -642,10 +719,8 @@ export default function TutorNotesPage() {
 
       <ConfirmActionDialog
         open={Boolean(deleteNoteTarget)}
-        onOpenChange={(open) => {
-          if (!open) setDeleteNoteTarget(null);
-        }}
-        title="Delete note?"
+        onOpenChange={(open) => { if (!open) setDeleteNoteTarget(null); }}
+        title="Delete material?"
         description="This will permanently remove the selected material from the class notes."
         confirmText="Delete"
         onConfirm={confirmDeleteNote}
@@ -654,24 +729,22 @@ export default function TutorNotesPage() {
 
       <Dialog
         open={pdfPreview.open}
-        onOpenChange={(open) =>
-          setPdfPreview((prev) => ({ ...prev, open }))
-        }
+        onOpenChange={(open) => setPdfPreview((prev) => ({ ...prev, open }))}
       >
         <DialogContent className="sm:max-w-5xl">
           <DialogHeader>
-            <DialogTitle>{pdfPreview.name || "PDF Preview"}</DialogTitle>
-            <DialogDescription>
-              Previewing file inside the dashboard.
-            </DialogDescription>
+            <DialogTitle className="flex items-center gap-2">
+              <FileIcon className="h-4 w-4 text-primary" />
+              {pdfPreview.name || "PDF Preview"}
+            </DialogTitle>
+            <DialogDescription>Previewing file inside the dashboard.</DialogDescription>
           </DialogHeader>
-
-          <div className="h-[70vh] rounded-md border overflow-hidden bg-slate-100">
+          <div className="h-[70vh] overflow-hidden rounded-lg border bg-muted/30">
             {pdfPreview.url ? (
               <iframe
                 title={pdfPreview.name || "PDF Preview"}
                 src={pdfPreview.url}
-                className="w-full h-full"
+                className="h-full w-full"
               />
             ) : (
               <p className="p-4 text-sm text-muted-foreground">No file selected.</p>
