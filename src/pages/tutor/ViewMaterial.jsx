@@ -228,17 +228,10 @@ export default function ViewMaterialPage() {
         <div className="space-y-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div className="space-y-3">
-              <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary backdrop-blur-sm">
-                <Sparkles className="h-3.5 w-3.5" />
-                Tutor Dashboard
-              </div>
-              <h1 className="bg-gradient-to-br from-foreground via-foreground to-foreground/60 bg-clip-text text-4xl font-bold tracking-tight text-transparent md:text-5xl">
+             
+              <h4 className="mb-2 bg-gradient-to-br from-foreground via-foreground to-foreground/60 bg-clip-text text-4xl font-bold tracking-tight text-transparent md:text-4xl">
                 View Material
-              </h1>
-              <p className="max-w-xl text-sm text-muted-foreground md:text-base">
-                Browse class recordings, lecture links and PDF resources for all
-                your scheduled sessions.
-              </p>
+              </h4>
             </div>
 
             {/* Search */}

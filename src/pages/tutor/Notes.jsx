@@ -392,7 +392,7 @@ export default function TutorNotesPage() {
 
             <div className="space-y-2">
               <Label htmlFor="title">Title</Label>
-              <Input id="title" placeholder="Enter title" {...register("title")} />
+              <Input id="title" placeholder="Enter title" {...register("title")} disabled />
             </div>
 
             {watchedContentType === "note" ? (
@@ -489,12 +489,12 @@ export default function TutorNotesPage() {
       >
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Class Materials</DialogTitle>
-            <DialogDescription>
+            <DialogTitle>Class Materials For 
               {selectedClass
-                ? `Browse all materials for "${selectedClass.topic || "Class Session"}"`
+                ? ` "${selectedClass.topic || "Class Session"}"`
                 : "Class notes"}
-            </DialogDescription>
+            </DialogTitle>
+        
           </DialogHeader>
 
           <div className="max-h-[65vh] overflow-y-auto pr-1">
@@ -564,9 +564,6 @@ export default function TutorNotesPage() {
                             <div className="min-w-0">
                               <h3 className="font-medium">{note.title || "Class Note"}</h3>
                               <div className="mt-1 flex flex-wrap items-center gap-2">
-                                <Badge variant="secondary" className="text-[10px]">
-                                  {note.contentType === "videoLecture" ? "Video Lecture" : "Note"}
-                                </Badge>
                                 {note.createdAt && (
                                   <span className="text-xs text-muted-foreground">
                                     {new Date(note.createdAt).toLocaleString()}
@@ -645,9 +642,7 @@ export default function TutorNotesPage() {
                             <div className="min-w-0">
                               <h3 className="font-medium">{note.title || "Class Note"}</h3>
                               <div className="mt-1 flex flex-wrap items-center gap-2">
-                                <Badge variant="secondary" className="text-[10px]">
-                                  {note.contentType === "videoLecture" ? "Video Lecture" : "Note"}
-                                </Badge>
+                               
                                 {note.createdAt && (
                                   <span className="text-xs text-muted-foreground">
                                     {new Date(note.createdAt).toLocaleString()}
@@ -677,7 +672,7 @@ export default function TutorNotesPage() {
 
                           {note.content && (
                             <p className="mt-3 whitespace-pre-wrap rounded-lg bg-muted/50 p-3 text-sm leading-relaxed">
-                              {note.content}
+                              Note: {note.content}
                             </p>
                           )}
 
