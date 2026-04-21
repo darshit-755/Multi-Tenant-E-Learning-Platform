@@ -129,6 +129,7 @@ function App() {
             <Route path="/student/batches" element={<StudentBatches />} />
             <Route path="/student/material" element={<StudentMaterial />} />
             <Route path="/student/material/:batchId" element={<StudentMaterial />} />
+            <Route path="/student/material/:batchId/:classId" element={<StudentMaterial />} />
             <Route path="/student/attendance" element={<StudentAttendancePage />} />
             <Route path="/student/notes" element={<StudentNotesPage />} />
             <Route path="/student/doubts" element={<DoubtsHubPage role="student" />} />
