@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ import {
   GraduationCap,
   Users,
   Eye,
+  Maximize2,
 } from "lucide-react";
 import { useGetMyClasses } from "@/hooks/tutor/useGetMyClasses";
 import { getClassNotesApi } from "@/services/classNote.api";
@@ -73,6 +74,8 @@ export default function ViewMaterialPage() {
   const [search, setSearch] = useState("");
   const [selectedClass, setSelectedClass] = useState(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [pdfPreview, setPdfPreview] = useState({ open: false, url: "", name: "" });
+  const pdfPreviewRef = useRef(null);
   const [materialTab, setMaterialTab] = useState("video");
 
   const filteredClasses = useMemo(() => {
@@ -132,6 +135,23 @@ export default function ViewMaterialPage() {
   const openViewDialog = (cls) => {
     setSelectedClass(cls);
     setIsViewDialogOpen(true);
+  };
+
+  const openPdfPreview = ({ url, name }) => {
+    if (!url) return;
+    setPdfPreview({ open: true, url, name: name || "PDF Preview" });
+  };
+
+  const openPdfFullscreen = () => {
+    if (!pdfPreview.url) return;
+    const container = pdfPreviewRef.current;
+    if (container?.requestFullscreen) {
+      container.requestFullscreen().catch(() => {
+        window.open(pdfPreview.url, "_blank", "noopener,noreferrer");
+      });
+      return;
+    }
+    window.open(pdfPreview.url, "_blank", "noopener,noreferrer");
   };
 
   /* -------------------- Loading -------------------- */
@@ -553,15 +573,16 @@ export default function ViewMaterialPage() {
                                               <span className="truncate text-xs font-medium text-foreground">
                                                 {pdfName}
                                               </span>
-                                              <a
-                                                href={pdfUrl}
-                                                target="_blank"
-                                                rel="noreferrer"
+                                              <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => openPdfPreview({ url: pdfUrl, name: pdfName })}
                                                 className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
                                               >
                                                 <ExternalLink className="h-3 w-3" />
                                                 Open PDF
-                                              </a>
+                                              </Button>
                                             </div>
                                           </div>
                                         );
@@ -577,6 +598,47 @@ export default function ViewMaterialPage() {
                     </TabsContent>
                   </Tabs>
                 </>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={pdfPreview.open}
+          onOpenChange={(open) => setPdfPreview((prev) => ({ ...prev, open }))}
+        >
+          <DialogContent className="sm:max-w-3xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" />
+                {pdfPreview.name || "PDF Preview"}
+              </DialogTitle>
+              <DialogDescription>Previewing file inside the dashboard.</DialogDescription>
+              {pdfPreview.url ? (
+                <div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={openPdfFullscreen}
+                    className="mt-2 h-8 gap-1.5"
+                  >
+                    <Maximize2 className="h-3.5 w-3.5" />
+                    Full Screen
+                  </Button>
+                </div>
+              ) : null}
+            </DialogHeader>
+            <div ref={pdfPreviewRef} className="h-[50vh] overflow-hidden rounded-lg border bg-muted/30">
+              {pdfPreview.url ? (
+                <iframe
+                  src={pdfPreview.url}
+                  title={pdfPreview.name || "PDF Preview"}
+                  className="h-full w-full"
+                  allowFullScreen
+                />
+              ) : (
+                <p className="p-4 text-sm text-muted-foreground">No file selected.</p>
               )}
             </div>
           </DialogContent>
