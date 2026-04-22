@@ -440,7 +440,7 @@ export default function ViewMaterialPage() {
                       ) : (
                         <div className="space-y-4">
                           {notes.map((note, i) =>
-                            Array.isArray(note.videos) && note.videos.length > 0 ? (
+                            (Array.isArray(note.videos) && note.videos.length > 0) || note.lectureLink ? (
                               <div
                                 key={note._id || i}
                                 className="group overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition-all hover:shadow-md"
@@ -476,32 +476,34 @@ export default function ViewMaterialPage() {
                                     </a>
                                   ) : null}
 
-                                  <div>
-                                    <div className="grid gap-2">
-                                      {note.videos.map((video, index) => {
-                                        const videoUrl =
-                                          typeof video === "string" ? video : video?.url;
-                                        const videoName =
-                                          typeof video === "string"
-                                            ? String(video).split("/").pop() || `Video ${index + 1}`
-                                            : video?.name ||
-                                              String(video?.url || "").split("/").pop() ||
-                                              `Video ${index + 1}`;
-                                        if (!videoUrl) return null;
-                                        return (
-                                          <div
-                                            key={index}
-                                            className="aspect-video overflow-hidden rounded-lg border bg-background"
-                                          >
-                                            <video className="h-full w-full" controls src={videoUrl} preload="metadata" />
-                                            <p className="px-3 py-2 text-xs text-muted-foreground truncate">
-                                              {videoName}
-                                            </p>
-                                          </div>
-                                        );
-                                      })}
+                                  {Array.isArray(note.videos) && note.videos.length > 0 && (
+                                    <div>
+                                      <div className="grid gap-2">
+                                        {note.videos.map((video, index) => {
+                                          const videoUrl =
+                                            typeof video === "string" ? video : video?.url;
+                                          const videoName =
+                                            typeof video === "string"
+                                              ? String(video).split("/").pop() || `Video ${index + 1}`
+                                              : video?.name ||
+                                                String(video?.url || "").split("/").pop() ||
+                                                `Video ${index + 1}`;
+                                          if (!videoUrl) return null;
+                                          return (
+                                            <div
+                                              key={index}
+                                              className="aspect-video overflow-hidden rounded-lg border bg-background"
+                                            >
+                                              <video className="h-full w-full" controls src={videoUrl} preload="metadata" />
+                                              <p className="px-3 py-2 text-xs text-muted-foreground truncate">
+                                                {videoName}
+                                              </p>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
                                     </div>
-                                  </div>
+                                  )}
                                 </div>
                               </div>
                             ) : null

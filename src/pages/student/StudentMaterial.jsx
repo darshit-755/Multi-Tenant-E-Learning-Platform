@@ -221,9 +221,21 @@ const ClassVideoView = ({ cls, batchId, activeBatch }) => {
 
   const notes = classNotesData?.notes || [];
 
-  // Collect all videos
+  // Collect all videos (both uploaded files and lecture links)
   const allVideos = [];
   notes.forEach((note) => {
+    // Add lecture links first
+    if (note.lectureLink && typeof note.lectureLink === "string" && note.lectureLink.trim()) {
+      allVideos.push({
+        noteId: note._id,
+        url: note.lectureLink,
+        name: note.title || "Video Lecture",
+        index: -1,
+        isLink: true,
+      });
+    }
+
+    // Add uploaded video files
     if (Array.isArray(note.videos) && note.videos.length > 0) {
       note.videos.forEach((video, vIdx) => {
         const videoUrl = typeof video === "string" ? video : video?.url;
@@ -239,6 +251,7 @@ const ClassVideoView = ({ cls, batchId, activeBatch }) => {
             url: videoUrl,
             name: videoName,
             index: vIdx,
+            isLink: false,
           });
         }
       });
@@ -345,14 +358,31 @@ const ClassVideoView = ({ cls, batchId, activeBatch }) => {
                   <p className="text-sm font-medium text-slate-700">
                     {video.name}
                   </p>
-                  <div className="aspect-video rounded-lg overflow-hidden border bg-black">
-                    <video
-                      className="h-full w-full"
-                      controls
-                      src={video.url}
-                      preload="metadata"
-                    />
-                  </div>
+                  {video.isLink ? (
+                    <a
+                      href={video.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-2 px-4 py-3 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors"
+                    >
+                      <Play size={18} className="text-blue-600 shrink-0" />
+                      <span className="text-sm font-medium text-blue-900 truncate">
+                        {video.url}
+                      </span>
+                      <span className="text-xs text-blue-700 ml-auto shrink-0">
+                        Open →
+                      </span>
+                    </a>
+                  ) : (
+                    <div className="aspect-video rounded-lg overflow-hidden border bg-black">
+                      <video
+                        className="h-full w-full"
+                        controls
+                        src={video.url}
+                        preload="metadata"
+                      />
+                    </div>
+                  )}
                   {idx < allVideos.length - 1 && (
                     <hr className="border-slate-200 mt-2" />
                   )}
