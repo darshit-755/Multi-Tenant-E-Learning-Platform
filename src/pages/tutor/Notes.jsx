@@ -372,7 +372,7 @@ export default function TutorNotesPage() {
                   });
                 }}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -392,7 +392,13 @@ export default function TutorNotesPage() {
 
             <div className="space-y-2">
               <Label htmlFor="title">Title</Label>
-              <Input id="title" placeholder="Enter title" {...register("title")} disabled />
+              <Input
+                id="title"
+                placeholder="Enter title"
+                className="border-2 border-border/80 focus-visible:border-primary"
+                {...register("title")}
+                readonly="readonly"
+              />
             </div>
 
             {watchedContentType === "note" ? (
@@ -497,7 +503,7 @@ export default function TutorNotesPage() {
         
           </DialogHeader>
 
-          <div className="max-h-[65vh] overflow-y-auto pr-1">
+          <div className="h-[65vh] overflow-y-auto pr-1">
             {isNotesLoading ? (
               <div className="flex items-center justify-center py-12 text-muted-foreground">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -612,8 +618,8 @@ export default function TutorNotesPage() {
                                     ? String(video).split("/").pop() || `Video ${index + 1}`
                                     : video?.name || String(video?.url || "").split("/").pop() || `Video ${index + 1}`;
                                 return (
-                                  <div key={`${note._id}-video-${index}`} className="overflow-hidden rounded-lg border bg-background">
-                                    <video className="w-full" controls src={videoUrl} preload="metadata" />
+                                  <div key={`${note._id}-video-${index}`} className="aspect-video overflow-hidden rounded-lg border bg-background">
+                                    <video className="h-full w-full" controls src={videoUrl} preload="metadata" />
                                     <p className="px-3 py-2 text-xs text-muted-foreground truncate">{videoName}</p>
                                   </div>
                                 );
@@ -734,7 +740,7 @@ export default function TutorNotesPage() {
             </DialogTitle>
             <DialogDescription>Previewing file inside the dashboard.</DialogDescription>
           </DialogHeader>
-          <div className="h-[70vh] overflow-hidden rounded-lg border bg-muted/30">
+          <div className="aspect-video overflow-hidden rounded-lg border bg-muted/30">
             {pdfPreview.url ? (
               <iframe
                 title={pdfPreview.name || "PDF Preview"}

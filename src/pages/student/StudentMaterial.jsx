@@ -331,9 +331,9 @@ const ClassVideoView = ({ cls, batchId, activeBatch }) => {
                   <p className="text-sm font-medium text-slate-700">
                     {video.name}
                   </p>
-                  <div className="rounded-lg overflow-hidden border bg-black">
+                  <div className="aspect-video rounded-lg overflow-hidden border bg-black">
                     <video
-                      className="w-full"
+                      className="h-full w-full"
                       controls
                       src={video.url}
                       preload="metadata"
@@ -411,7 +411,7 @@ const ClassVideoView = ({ cls, batchId, activeBatch }) => {
               Previewing file inside the dashboard.
             </DialogDescription>
           </DialogHeader>
-          <div className="h-[70vh] rounded-md border overflow-hidden bg-slate-100">
+          <div className="aspect-video rounded-md border overflow-hidden bg-slate-100">
             {pdfPreview.url ? (
               <iframe
                 title={pdfPreview.name || "PDF Preview"}

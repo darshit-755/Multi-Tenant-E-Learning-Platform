@@ -27,13 +27,11 @@ import {
   FileText,
   Video,
   ExternalLink,
-  PlayCircle,
   Inbox,
   BookOpen,
   Search,
   GraduationCap,
   Users,
-  Download,
   Eye,
 } from "lucide-react";
 import { useGetMyClasses } from "@/hooks/tutor/useGetMyClasses";
@@ -75,7 +73,6 @@ export default function ViewMaterialPage() {
   const [search, setSearch] = useState("");
   const [selectedClass, setSelectedClass] = useState(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  const [pdfPreview, setPdfPreview] = useState({ open: false, url: "", name: "" });
   const [materialTab, setMaterialTab] = useState("video");
 
   const filteredClasses = useMemo(() => {
@@ -135,11 +132,6 @@ export default function ViewMaterialPage() {
   const openViewDialog = (cls) => {
     setSelectedClass(cls);
     setIsViewDialogOpen(true);
-  };
-
-  const openPdfPreview = ({ url, name }) => {
-    if (!url) return;
-    setPdfPreview({ open: true, url, name: name || "PDF Preview" });
   };
 
   /* -------------------- Loading -------------------- */
@@ -360,7 +352,7 @@ export default function ViewMaterialPage() {
               </div>
             </DialogHeader>
 
-            <div className="max-h-[calc(92vh-120px)] space-y-5 overflow-y-auto px-6 py-5">
+            <div className="h-[calc(92vh-120px)] space-y-5 overflow-y-auto px-6 py-5">
               {isNotesLoading ? (
                 <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -477,21 +469,15 @@ export default function ViewMaterialPage() {
                                               `Video ${index + 1}`;
                                         if (!videoUrl) return null;
                                         return (
-                                          <a
+                                          <div
                                             key={index}
-                                            href={videoUrl}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="group/item flex items-center gap-3 rounded-xl border border-border/60 bg-gradient-to-r from-muted/30 to-transparent px-3 py-2.5 text-sm transition-all hover:border-primary/30 hover:from-primary/5"
+                                            className="aspect-video overflow-hidden rounded-lg border bg-background"
                                           >
-                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover/item:bg-primary group-hover/item:text-primary-foreground">
-                                              <PlayCircle className="h-4 w-4" />
-                                            </div>
-                                            <span className="flex-1 truncate font-medium">
+                                            <video className="h-full w-full" controls src={videoUrl} preload="metadata" />
+                                            <p className="px-3 py-2 text-xs text-muted-foreground truncate">
                                               {videoName}
-                                            </span>
-                                            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover/item:translate-x-0.5 group-hover/item:text-primary" />
-                                          </a>
+                                            </p>
+                                          </div>
                                         );
                                       })}
                                     </div>
@@ -543,7 +529,7 @@ export default function ViewMaterialPage() {
                                   ) : null}
 
                                   <div>
-                                    <div className="grid gap-2 sm:grid-cols-2">
+                                    <div className="space-y-3">
                                       {note.pdfs.map((pdf, index) => {
                                         const pdfUrl = typeof pdf === "string" ? pdf : pdf?.url;
                                         const pdfName =
@@ -554,24 +540,30 @@ export default function ViewMaterialPage() {
                                               `PDF ${index + 1}`;
                                         if (!pdfUrl) return null;
                                         return (
-                                          <button
+                                          <div
                                             key={index}
-                                            onClick={() =>
-                                              openPdfPreview({
-                                                url: pdfUrl,
-                                                name: pdfName,
-                                              })
-                                            }
-                                            className="group/pdf flex items-center gap-3 rounded-xl border border-border/60 bg-gradient-to-r from-muted/30 to-transparent px-3 py-2.5 text-left text-sm transition-all hover:border-blue-300 hover:from-blue-50/60 dark:hover:border-blue-800 dark:hover:from-blue-950/30"
+                                            className="overflow-hidden rounded-lg border bg-background"
                                           >
-                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 ring-1 ring-blue-200/60 transition-colors group-hover/pdf:bg-blue-600 group-hover/pdf:text-white dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-900/60">
-                                              <FileText className="h-4 w-4" />
+                                            <iframe
+                                              src={pdfUrl}
+                                              title={pdfName}
+                                              className="aspect-video w-full"
+                                            />
+                                            <div className="flex items-center justify-between gap-3 border-t bg-muted/20 px-3 py-2">
+                                              <span className="truncate text-xs font-medium text-foreground">
+                                                {pdfName}
+                                              </span>
+                                              <a
+                                                href={pdfUrl}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                                              >
+                                                <ExternalLink className="h-3 w-3" />
+                                                Open PDF
+                                              </a>
                                             </div>
-                                            <span className="flex-1 truncate font-medium text-foreground">
-                                              {pdfName}
-                                            </span>
-                                            <Eye className="h-3.5 w-3.5 text-muted-foreground transition-colors group-hover/pdf:text-blue-600" />
-                                          </button>
+                                          </div>
                                         );
                                       })}
                                     </div>
@@ -590,59 +582,6 @@ export default function ViewMaterialPage() {
           </DialogContent>
         </Dialog>
 
-        {/* PDF Preview Dialog */}
-        <Dialog
-          open={pdfPreview.open}
-          onOpenChange={(open) =>
-            setPdfPreview((prev) => ({ ...prev, open }))
-          }
-        >
-          <DialogContent className="max-h-[92vh] max-w-5xl overflow-hidden rounded-2xl p-0">
-            <DialogHeader className="border-b border-border/60 bg-gradient-to-br from-blue-500/10 via-muted/40 to-background px-6 py-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-background/80 p-2 shadow-sm ring-1 ring-border/60">
-                    <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div>
-                    <DialogTitle className="text-base font-semibold">
-                      {pdfPreview.name || "PDF Preview"}
-                    </DialogTitle>
-                    <DialogDescription className="text-xs">
-                      Previewing file inside the dashboard
-                    </DialogDescription>
-                  </div>
-                </div>
-                {pdfPreview.url ? (
-                  <a
-                    href={pdfPreview.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    download
-                    className="mr-8 inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/15"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    Download
-                  </a>
-                ) : null}
-              </div>
-            </DialogHeader>
-
-            <div className="h-[80vh] w-full bg-muted/20">
-              {pdfPreview.url ? (
-                <iframe
-                  src={pdfPreview.url}
-                  title={pdfPreview.name || "PDF Preview"}
-                  className="h-full w-full"
-                />
-              ) : (
-                <p className="p-4 text-sm text-muted-foreground">
-                  No file selected.
-                </p>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
     </div>
   );
