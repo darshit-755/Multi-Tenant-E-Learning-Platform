@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronUp,
   BookOpen,
+  Maximize2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -205,6 +206,7 @@ const ClassVideoView = ({ cls, batchId, activeBatch }) => {
     url: "",
     name: "",
   });
+  const pdfPreviewRef = useRef(null);
 
   const [resourcesOpen, setResourcesOpen] = useState(false);
 
@@ -263,6 +265,18 @@ const ClassVideoView = ({ cls, batchId, activeBatch }) => {
   const openPdfPreview = ({ url, name }) => {
     if (!url) return;
     setPdfPreview({ open: true, url, name: name || "PDF Preview" });
+  };
+
+  const openPdfFullscreen = () => {
+    if (!pdfPreview.url) return;
+    const container = pdfPreviewRef.current;
+    if (container?.requestFullscreen) {
+      container.requestFullscreen().catch(() => {
+        window.open(pdfPreview.url, "_blank", "noopener,noreferrer");
+      });
+      return;
+    }
+    window.open(pdfPreview.url, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -410,13 +424,28 @@ const ClassVideoView = ({ cls, batchId, activeBatch }) => {
             <DialogDescription>
               Previewing file inside the dashboard.
             </DialogDescription>
+            {pdfPreview.url ? (
+              <div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={openPdfFullscreen}
+                  className="mt-2 h-8 gap-1.5"
+                >
+                  <Maximize2 className="h-3.5 w-3.5" />
+                  Full Screen
+                </Button>
+              </div>
+            ) : null}
           </DialogHeader>
-          <div className="aspect-video rounded-md border overflow-hidden bg-slate-100">
+          <div ref={pdfPreviewRef} className="aspect-video rounded-md border overflow-hidden bg-slate-100">
             {pdfPreview.url ? (
               <iframe
                 title={pdfPreview.name || "PDF Preview"}
                 src={pdfPreview.url}
                 className="w-full h-full"
+                allowFullScreen
               />
             ) : (
               <p className="p-4 text-sm text-muted-foreground">
