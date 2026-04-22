@@ -381,7 +381,7 @@ export default function StudentNotesPage() {
         open={pdfPreview.open}
         onOpenChange={(open) => setPdfPreview((prev) => ({ ...prev, open }))}
       >
-        <DialogContent className="sm:max-w-5xl">
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileIcon className="h-4 w-4 text-primary" />
@@ -403,7 +403,7 @@ export default function StudentNotesPage() {
               </div>
             ) : null}
           </DialogHeader>
-          <div ref={pdfPreviewRef} className="aspect-video overflow-hidden rounded-lg border bg-muted/30">
+          <div ref={pdfPreviewRef} className="h-[50vh] overflow-hidden rounded-lg border bg-muted/30">
             {pdfPreview.url ? (
               <iframe
                 title={pdfPreview.name || "PDF Preview"}

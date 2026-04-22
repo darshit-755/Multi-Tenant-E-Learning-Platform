@@ -418,7 +418,7 @@ const ClassVideoView = ({ cls, batchId, activeBatch }) => {
           setPdfPreview((prev) => ({ ...prev, open }))
         }
       >
-        <DialogContent className="sm:max-w-5xl">
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>{pdfPreview.name || "PDF Preview"}</DialogTitle>
             <DialogDescription>
@@ -439,7 +439,7 @@ const ClassVideoView = ({ cls, batchId, activeBatch }) => {
               </div>
             ) : null}
           </DialogHeader>
-          <div ref={pdfPreviewRef} className="aspect-video rounded-md border overflow-hidden bg-slate-100">
+          <div ref={pdfPreviewRef} className="h-[50vh] rounded-md border overflow-hidden bg-slate-100">
             {pdfPreview.url ? (
               <iframe
                 title={pdfPreview.name || "PDF Preview"}
