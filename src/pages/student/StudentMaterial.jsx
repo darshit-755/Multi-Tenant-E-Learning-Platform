@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useEffect } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -107,90 +107,6 @@ const ClassListView = ({ activeBatch, classesForBatch, batchId }) => {
         </Card>
       )}
 
-      {/* Class List */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg">
-            Classes ({classesForBatch.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          {classesForBatch.length === 0 ? (
-            <div className="text-center py-10">
-              <Play className="mx-auto h-10 w-10 text-slate-300 mb-2" />
-              <p className="text-sm text-muted-foreground">
-                No classes found for this batch yet.
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Topic</TableHead>
-                    <TableHead>Subject</TableHead>
-                    <TableHead>Schedule</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {classesForBatch.map((cls) => (
-                    <TableRow key={cls._id} className="hover:bg-slate-50">
-                      <TableCell className="font-medium">
-                        {cls.topic || "Class Session"}
-                      </TableCell>
-                      <TableCell>{cls.subjectId?.name || "-"}</TableCell>
-                      <TableCell>
-                        <div className="text-xs">
-                          <div>{formatDateWithDay(cls.date)}</div>
-                          <div className="text-muted-foreground">
-                            {cls.startTime
-                              ? `${cls.startTime} (${cls.duration || 0} min)`
-                              : "-"}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className={`px-2.5 py-0.5 text-xs rounded-full font-medium ${
-                            cls.status === "completed"
-                              ? "bg-blue-100 text-blue-800"
-                              : cls.status === "cancelled"
-                              ? "bg-red-100 text-red-700"
-                              : "bg-green-100 text-green-800"
-                          }`}
-                        >
-                          {cls.status === "completed"
-                            ? "Completed"
-                            : cls.status === "cancelled"
-                            ? "Cancelled"
-                            : "Scheduled"}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            navigate(
-                              `/student/material/${batchId}/${cls._id}`
-                            )
-                          }
-                          className="gap-1.5"
-                        >
-                          <Play size={13} />
-                          View Material
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 };
@@ -243,8 +159,8 @@ const ClassVideoView = ({ cls, batchId, activeBatch }) => {
           typeof video === "string"
             ? String(video).split("/").pop() || `Video ${vIdx + 1}`
             : video?.name ||
-              String(video?.url || "").split("/").pop() ||
-              `Video ${vIdx + 1}`;
+            String(video?.url || "").split("/").pop() ||
+            `Video ${vIdx + 1}`;
         if (videoUrl) {
           allVideos.push({
             noteId: note._id,
@@ -268,8 +184,8 @@ const ClassVideoView = ({ cls, batchId, activeBatch }) => {
           typeof pdf === "string"
             ? String(pdf).split("/").pop() || `PDF ${pIdx + 1}`
             : pdf?.name ||
-              String(pdf?.url || "").split("/").pop() ||
-              `PDF ${pIdx + 1}`;
+            String(pdf?.url || "").split("/").pop() ||
+            `PDF ${pIdx + 1}`;
         if (pdfUrl) allPdfs.push({ url: pdfUrl, name: pdfName });
       });
     }
@@ -300,21 +216,6 @@ const ClassVideoView = ({ cls, batchId, activeBatch }) => {
           <h1 className="text-2xl font-semibold text-slate-800">
             {cls?.topic || "Class Session"}
           </h1>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-            <span>{activeBatch?.name}</span>
-            <span>•</span>
-            <span>{cls?.subjectId?.name || "-"}</span>
-            <span>•</span>
-            <span>{formatDateWithDay(cls?.date)}</span>
-            {cls?.startTime && (
-              <>
-                <span>•</span>
-                <span>
-                  {cls.startTime} ({cls.duration || 0} min)
-                </span>
-              </>
-            )}
-          </div>
         </div>
 
         <Button
@@ -330,8 +231,8 @@ const ClassVideoView = ({ cls, batchId, activeBatch }) => {
 
       {/* Videos */}
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg flex items-center gap-2">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center mb-0">
             <Play size={18} className="text-blue-600" />
             Video Recordings
           </CardTitle>
@@ -343,7 +244,7 @@ const ClassVideoView = ({ cls, batchId, activeBatch }) => {
             </p>
           ) : allVideos.length === 0 ? (
             <div className="text-center py-10">
-              <Play className="mx-auto h-10 w-10 text-slate-300 mb-2" />
+              <Play className="mx-auto h-10 w-10 text-slate-300 mb-4" />
               <p className="text-sm text-muted-foreground">
                 No video recordings available for this class.
               </p>
@@ -520,13 +421,7 @@ const StudentMaterialPage = () => {
     [classes, classId]
   );
 
-  // Auto-redirect to first class when batch is selected but no class is selected
-  useEffect(() => {
-    if (batchId && !classId && classesForBatch.length > 0 && !isClassesLoading) {
-      const firstClass = classesForBatch[0];
-      navigate(`/student/material/${batchId}/${firstClass._id}`, { replace: true });
-    }
-  }, [batchId, classId, classesForBatch, isClassesLoading, navigate]);
+  // No auto-redirect — user picks classes from sidebar tree
 
   // VIEW 1: No batch
   if (!batchId) {
