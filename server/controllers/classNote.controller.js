@@ -35,7 +35,15 @@ export const updateClassNote = async (req, res) => {
       note.pdfs = buildUploadedFileObjects(req, req.files.notePdfs, "notes");
     }
     if (req.files && req.files.lectureVideos) {
-      note.videos = buildUploadedFileObjects(req, req.files.lectureVideos, "lectures");
+      // Get class topic for video naming
+      const classDoc = await Class.findById(note.classId).select("topic");
+      const classTitle = classDoc?.topic || "Video Lecture";
+      note.videos = buildUploadedFileObjectsWithClassTitle(
+        req,
+        req.files.lectureVideos,
+        classTitle,
+        "lectures"
+      );
     }
 
     await note.save();
@@ -50,6 +58,7 @@ import { Tutor } from "../models/tutor.model.js";
 import { ClassNote } from "../models/classNote.model.js";
 import { Student } from "../models/student.model.js";
 import { Batch } from "../models/batch.model.js";
+import { buildUploadedFileObjectsWithClassTitle } from "../utils/fileHelper.js";
 
 const formatClassDate = (rawDate) => {
   if (!rawDate) return "-";
@@ -260,7 +269,16 @@ export const addClassNote = async (req, res) => {
       : [];
 
     const pdfs = buildUploadedFileObjects(req, notePdfFiles, "notes");
-    const videos = buildUploadedFileObjects(req, lectureVideoFiles, "lectures");
+    
+    // Get class topic for video naming
+    const classDoc = await Class.findById(classId).select("topic");
+    const classTitle = classDoc?.topic || "Video Lecture";
+    const videos = buildUploadedFileObjectsWithClassTitle(
+      req,
+      lectureVideoFiles,
+      classTitle,
+      "lectures"
+    );
 
     if (lectureLink && !isValidHttpUrl(lectureLink)) {
       return res

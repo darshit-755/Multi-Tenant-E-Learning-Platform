@@ -18,6 +18,7 @@ import { useGetMyBatches } from "@/hooks/student/useGetMyBatches";
 import { useGetMyClasses } from "@/hooks/student/useGetMyClasses";
 import { getClassNotesApi } from "@/services/classNote.api";
 import { cn } from "@/lib/utils";
+import { formatDateWithDay } from "@/utils/classUtils";
 
 const StudentSidebarContent = () => {
   const location = useLocation();
@@ -90,9 +91,11 @@ const StudentSidebarContent = () => {
 
   /* ═══════════════════════════════════════════════════════
      VIEW 3: Batch selected + Class selected
-     Show: Back, batch list, selected class, Resources
+     Show: Back, batch overview, current class, Resources
      ═══════════════════════════════════════════════════════ */
   if (isMaterialRoute && activeBatchId && activeClassId) {
+    const selectedBatch = batches.find((b) => b._id === activeBatchId);
+
     return (
       <div className="space-y-4">
         {/* Back to class list */}
@@ -105,51 +108,50 @@ const StudentSidebarContent = () => {
           Back to Classes
         </button>
 
-        {/* Batch list */}
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
-            Batches
-          </p>
-          <div className="mt-2 space-y-0.5">
-            {batches.map((batch) => {
-              const isActive = activeBatchId === batch._id;
-              return (
-                <button
-                  key={batch._id}
-                  type="button"
-                  onClick={() => handleBatchClick(batch._id)}
-                  className={cn(
-                    "flex items-center gap-2.5 w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors",
-                    "text-slate-400 hover:bg-slate-800 hover:text-white",
-                    isActive && "bg-slate-800 text-white font-medium"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "h-2 w-2 rounded-full shrink-0",
-                      isActive ? "bg-blue-400" : "bg-slate-600"
-                    )}
-                  />
-                  <span className="truncate capitalize">{batch.name}</span>
-                </button>
-              );
-            })}
+        {/* Batch Overview */}
+        {selectedBatch && (
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400 mb-2">
+              Batch Overview
+            </p>
+            <div className="bg-slate-800 rounded-md p-2.5 space-y-1.5 text-xs text-slate-300">
+              <div>
+                <span className="text-slate-500">Name</span>
+                <p className="font-medium text-white truncate">{selectedBatch.name}</p>
+              </div>
+              <div>
+                <span className="text-slate-500">Subject</span>
+                <p className="font-medium text-white truncate">
+                  {selectedBatch.subjectId?.name || "-"}
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Divider */}
         <hr className="border-slate-700" />
 
-        {/* Selected class */}
+        {/* Current class */}
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
             Current Class
           </p>
-          <div className="mt-2 flex items-center gap-2 px-3 py-2 rounded-md bg-slate-800">
-            <Play size={14} className="text-blue-400 shrink-0" />
-            <span className="text-sm text-white font-medium truncate">
-              {activeClass?.topic || "Class Session"}
-            </span>
+          <div className="mt-2 bg-blue-900 rounded-md p-3 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <Play size={14} className="text-blue-400 shrink-0" />
+              <span className="text-sm text-white font-medium truncate">
+                {activeClass?.topic || "Class Session"}
+              </span>
+            </div>
+            <div className="text-xs text-slate-300">
+              {activeClass?.date && (
+                <p>{formatDateWithDay(activeClass.date)}</p>
+              )}
+              {activeClass?.startTime && (
+                <p>{activeClass.startTime} ({activeClass.duration || 0} min)</p>
+              )}
+            </div>
           </div>
         </div>
 
@@ -194,12 +196,18 @@ const StudentSidebarContent = () => {
 
   /* ═══════════════════════════════════════════════════════
      VIEW 2: Batch selected (no class yet)
-     Show: Back, batch list with active highlighted
+     Show: Back, batch overview, class list for batch
      ═══════════════════════════════════════════════════════ */
-  if (isMaterialRoute && activeBatchId) {
+  if (isMaterialRoute && activeBatchId && !activeClassId) {
+    // Get batch data
+    const selectedBatch = batches.find((b) => b._id === activeBatchId);
+    const classesInBatch = classes.filter(
+      (cls) => String(cls.batchId?._id || "") === String(activeBatchId)
+    );
+
     return (
       <div className="space-y-4">
-        {/* Back to main menu */}
+        {/* Back button */}
         <button
           type="button"
           onClick={() => navigate(`${basePath}/dashboard`)}
@@ -209,45 +217,75 @@ const StudentSidebarContent = () => {
           Back to Menu
         </button>
 
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
-            Material
-          </p>
-          <h2 className="mt-1 text-lg font-semibold text-white">
-            Select Batch
-          </h2>
-        </div>
+        {/* Section: Selected Batch Overview */}
+        {selectedBatch && (
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400 mb-2">
+              Batch Overview
+            </p>
+            <div className="bg-slate-800 rounded-md p-3 space-y-2 text-sm text-slate-300">
+              <div>
+                <span className="text-xs text-slate-400">Name</span>
+                <p className="font-medium text-white truncate">{selectedBatch.name}</p>
+              </div>
+              <div>
+                <span className="text-xs text-slate-400">Subject</span>
+                <p className="font-medium text-white truncate">
+                  {selectedBatch.subjectId?.name || "-"}
+                </p>
+              </div>
+              <div>
+                <span className="text-xs text-slate-400">Tutor</span>
+                <p className="font-medium text-white truncate">
+                  {selectedBatch.teacherId?.userId?.name || "-"}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
-        {/* Batch list */}
-        <div className="space-y-1">
-          {batches.length > 0 ? (
-            batches.map((batch) => {
-              const isActive = activeBatchId === batch._id;
-              return (
+        {/* Divider */}
+        <hr className="border-slate-700" />
+
+        {/* Section: Classes (Material) */}
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-slate-400 mb-2">
+            Classes
+          </p>
+          {classesInBatch.length === 0 ? (
+            <p className="text-xs text-slate-500 px-3 py-2">
+              No classes in this batch yet
+            </p>
+          ) : (
+            <div className="space-y-0.5 max-h-96 overflow-y-auto">
+              {classesInBatch.map((cls) => (
                 <button
-                  key={batch._id}
+                  key={cls._id}
                   type="button"
-                  onClick={() => handleBatchClick(batch._id)}
+                  onClick={() =>
+                    navigate(`${basePath}/material/${activeBatchId}/${cls._id}`)
+                  }
                   className={cn(
                     "flex items-center gap-2.5 w-full text-left px-3 py-2 rounded-md text-sm transition-colors",
                     "text-slate-400 hover:bg-slate-800 hover:text-white",
-                    isActive && "bg-slate-800 text-white font-medium"
+                    "group"
                   )}
                 >
-                  <span
-                    className={cn(
-                      "h-2 w-2 rounded-full shrink-0",
-                      isActive ? "bg-blue-400" : "bg-slate-600"
-                    )}
+                  <Play
+                    size={14}
+                    className="text-blue-400 shrink-0 group-hover:text-blue-300"
                   />
-                  <span className="truncate capitalize">{batch.name}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate font-medium">
+                      {cls.topic || "Class Session"}
+                    </p>
+                    <p className="text-xs text-slate-500 truncate">
+                      {formatDateWithDay(cls.date)}
+                    </p>
+                  </div>
                 </button>
-              );
-            })
-          ) : (
-            <p className="text-xs text-slate-500 px-3 py-2">
-              No batches assigned
-            </p>
+              ))}
+            </div>
           )}
         </div>
       </div>

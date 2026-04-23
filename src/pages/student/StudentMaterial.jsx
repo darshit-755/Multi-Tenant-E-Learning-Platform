@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -320,11 +320,11 @@ const ClassVideoView = ({ cls, batchId, activeBatch }) => {
         <Button
           type="button"
           variant="outline"
-          onClick={() => navigate(`/student/material/${batchId}`)}
+          onClick={() => navigate(`/student/material`)}
           className="gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Classes
+          Back to Batches
         </Button>
       </div>
 
@@ -494,6 +494,7 @@ const ClassVideoView = ({ cls, batchId, activeBatch }) => {
    ═══════════════════════════════════════════════════════ */
 const StudentMaterialPage = () => {
   const { batchId, classId } = useParams();
+  const navigate = useNavigate();
   const {
     data: classesData,
     isLoading: isClassesLoading,
@@ -518,6 +519,14 @@ const StudentMaterialPage = () => {
     () => classes.find((cls) => cls._id === classId),
     [classes, classId]
   );
+
+  // Auto-redirect to first class when batch is selected but no class is selected
+  useEffect(() => {
+    if (batchId && !classId && classesForBatch.length > 0 && !isClassesLoading) {
+      const firstClass = classesForBatch[0];
+      navigate(`/student/material/${batchId}/${firstClass._id}`, { replace: true });
+    }
+  }, [batchId, classId, classesForBatch, isClassesLoading, navigate]);
 
   // VIEW 1: No batch
   if (!batchId) {
@@ -548,14 +557,27 @@ const StudentMaterialPage = () => {
     );
   }
 
-  // VIEW 2: Batch selected, show class list
-  return (
-    <ClassListView
-      activeBatch={activeBatch}
-      classesForBatch={classesForBatch}
-      batchId={batchId}
-    />
-  );
+  // Fallback: If batch selected but no classes available
+  if (batchId && classesForBatch.length === 0) {
+    return (
+      <div className="w-full max-w-6xl mx-auto">
+        <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
+            <Play className="h-8 w-8 text-slate-400" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-semibold text-slate-800">No Classes</h1>
+            <p className="text-sm text-muted-foreground mt-2 max-w-md">
+              There are no classes available for this batch yet.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirecting to first class...
+  return <p className="text-sm text-muted-foreground p-4">Loading class...</p>;
 };
 
 export default StudentMaterialPage;
