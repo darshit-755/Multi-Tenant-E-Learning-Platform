@@ -493,6 +493,7 @@ export default function StudentClasses() {
                               size="sm"
                               variant="outline"
                               onClick={() => navigate(`/student/class-doubts/${cls._id}`)}
+                              className="cursor-pointer"
                             >
                               Raise Doubt
                             </Button>

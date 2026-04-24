@@ -57,13 +57,13 @@ const StudentHeader = () => {
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => navigate("/student/profile")}>
+          <DropdownMenuItem onClick={() => navigate("/student/profile")} className="cursor-pointer">
             Edit Profile
           </DropdownMenuItem>
 
           <DropdownMenuItem
             onClick={handleLogout}
-            className="text-red-500 focus:text-red-500"
+            className="text-red-500 focus:text-red-500 cursor-pointer"
           >
             Logout
           </DropdownMenuItem>

@@ -5,6 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import Loader from "@/components/common/Loader";
 
 import {
@@ -27,11 +34,11 @@ import {
 
 export default function Students() {
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedStudent, setSelectedStudent] = useState(null);
   const { control, watch, reset } = useForm({
     defaultValues: {
       name: "",
       email: "",
-      batch: "",
       status: "",
       tenant: ""
     }
@@ -89,16 +96,6 @@ export default function Students() {
               )}
             />
             <Controller
-              name="batch"
-              control={control}
-              render={({ field }) => (
-                <Input
-                  placeholder="Filter by batch"
-                  {...field}
-                />
-              )}
-            />
-            <Controller
               name="status"
               control={control}
               render={({ field }) => (
@@ -133,7 +130,6 @@ export default function Students() {
                 reset({
                   name: "",
                   email: "",
-                  batch: "",
                   status: "",
                   tenant: "",
                 })
@@ -153,13 +149,8 @@ export default function Students() {
               const statusMatch = !filters.status || filters.status === "all" || student.status === filters.status;
               const tenantMatch = !filters.tenant || 
                 student.tenantId?.name?.toLowerCase().includes(filters.tenant.toLowerCase());
-              const batchMatch = !filters.batch || 
-                student.batches?.some(batch => 
-                  batch.name.toLowerCase().includes(filters.batch.toLowerCase()) ||
-                  batch.subject.toLowerCase().includes(filters.batch.toLowerCase())
-                );
 
-              return nameMatch && emailMatch && statusMatch && tenantMatch && batchMatch;
+              return nameMatch && emailMatch && statusMatch && tenantMatch;
             });
 
             return filteredStudents.length === 0 ? (
@@ -174,20 +165,18 @@ export default function Students() {
                     <TableRow>
                       <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
-                      <TableHead>Roll Number</TableHead>
-                      <TableHead>Class</TableHead>
-                      <TableHead>Board</TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead>Parent</TableHead>
                       <TableHead>Tenant</TableHead>
-                      <TableHead>Batch</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
 
                   <TableBody>
                     {filteredStudents.map((student) => (
-                      <TableRow key={student._id}>
+                      <TableRow
+                        key={student._id}
+                        onClick={() => setSelectedStudent(student)}
+                        className="cursor-pointer hover:bg-muted/50"
+                      >
                         <TableCell className="font-medium capitalize">
                           {student.userId?.name || "N/A"}
                         </TableCell>
@@ -196,39 +185,8 @@ export default function Students() {
                           {student.userId?.email || "N/A"}
                         </TableCell>
 
-                        <TableCell>
-                          {student.rollNumber || "N/A"}
-                        </TableCell>
-
-                        <TableCell>
-                          {student.classLevel || "N/A"}
-                        </TableCell>
-
-                        <TableCell>
-                          {student.board || "N/A"}
-                        </TableCell>
-
-                        <TableCell>
-                          {student.phone || "N/A"}
-                        </TableCell>
-
-                        <TableCell>
-                          {student.parentName || "N/A"}
-                        </TableCell>
-
                         <TableCell className="capitalize">
                           {student.tenantId?.name || "N/A"}
-                        </TableCell>
-
-                        <TableCell>
-                          {student.batches && student.batches.length > 0
-                            ? student.batches.map((batch, index) => (
-                                <div key={batch._id} className="text-sm">
-                                  {batch.name} ({batch.subject})
-                                  {index < student.batches.length - 1 && ", "}
-                                </div>
-                              ))
-                            : "No batches"}
                         </TableCell>
 
                         <TableCell>
@@ -304,6 +262,96 @@ export default function Students() {
           )})()}
         </CardContent>
       </Card>
+
+      {/* Student Details Modal */}
+      <Dialog open={!!selectedStudent} onOpenChange={(open) => !open && setSelectedStudent(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Student Details</DialogTitle>
+            <DialogDescription>
+              Complete information for {selectedStudent?.userId?.name || "Student"}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedStudent && (
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <div>
+                <h3 className="font-semibold text-lg mb-3 border-b pb-2">Basic Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Name</p>
+                    <p className="font-medium capitalize">{selectedStudent.userId?.name || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Email</p>
+                    <p className="font-medium">{selectedStudent.userId?.email || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Status</p>
+                    <p className="font-medium capitalize">{selectedStudent.status || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Tenant</p>
+                    <p className="font-medium capitalize">{selectedStudent.tenantId?.name || "N/A"}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Academic Information */}
+              <div>
+                <h3 className="font-semibold text-lg mb-3 border-b pb-2">Academic Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Roll Number</p>
+                    <p className="font-medium">{selectedStudent.rollNumber || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Class</p>
+                    <p className="font-medium">{selectedStudent.classLevel || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Board</p>
+                    <p className="font-medium">{selectedStudent.board || "N/A"}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Personal Information */}
+              <div>
+                <h3 className="font-semibold text-lg mb-3 border-b pb-2">Personal Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Phone</p>
+                    <p className="font-medium">{selectedStudent.phone || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Parent Name</p>
+                    <p className="font-medium">{selectedStudent.parentName || "N/A"}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Batches */}
+              <div>
+                <h3 className="font-semibold text-lg mb-3 border-b pb-2">Enrolled Batches</h3>
+                {selectedStudent.batches && selectedStudent.batches.length > 0 ? (
+                  <div className="space-y-2">
+                    {selectedStudent.batches.map((batch) => (
+                      <div key={batch._id} className="bg-muted p-3 rounded-md">
+                        <p className="font-medium">{batch.name}</p>
+                        <p className="text-sm text-muted-foreground">Subject: {batch.subject}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">No batches enrolled</p>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

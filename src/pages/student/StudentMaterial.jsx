@@ -7,7 +7,6 @@ import {
   FileText,
   ChevronDown,
   ChevronUp,
-  BookOpen,
   Maximize2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,91 +29,11 @@ import {
 import { useGetMyClasses } from "@/hooks/student/useGetMyClasses";
 import { useGetMyBatches } from "@/hooks/student/useGetMyBatches";
 import { getClassNotesApi } from "@/services/classNote.api";
-import { formatDateWithDay } from "@/utils/classUtils";
-
-/* ═══════════════════════════════════════════════════════
-   VIEW 1: No batch selected — prompt to select from sidebar
-   ═══════════════════════════════════════════════════════ */
-const NoBatchView = ({ batches, isLoading }) => {
-  if (isLoading) {
-    return (
-      <div className="w-full max-w-6xl mx-auto space-y-4">
-        <h1 className="text-2xl font-semibold text-slate-800">Material</h1>
-        <p className="text-sm text-muted-foreground">Loading...</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="w-full max-w-6xl mx-auto">
-      <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
-          <BookOpen className="h-8 w-8 text-slate-400" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-800">Material</h1>
-          <p className="text-sm text-muted-foreground mt-2 max-w-md">
-            {batches.length === 0
-              ? "You are not assigned to any batches yet."
-              : "Click on the Material dropdown in the sidebar and select a batch to view its classes and resources."}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-/* ═══════════════════════════════════════════════════════
-   VIEW 2: Batch selected — show list of classes
-   ═══════════════════════════════════════════════════════ */
-const ClassListView = ({ activeBatch, classesForBatch, batchId }) => {
-  const navigate = useNavigate();
-
-  return (
-    <div className="w-full max-w-6xl mx-auto space-y-4">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-800">Material</h1>
-          <p className="text-sm text-muted-foreground">
-            {activeBatch
-              ? `Classes for ${activeBatch.name}`
-              : "Select a batch to view classes."}
-          </p>
-        </div>
-      </div>
-
-      {/* Batch Overview */}
-      {activeBatch && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Batch Overview</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1 text-sm text-slate-600">
-            <p>
-              <span className="font-medium text-slate-800">Batch:</span>{" "}
-              {activeBatch.name}
-            </p>
-            <p>
-              <span className="font-medium text-slate-800">Subject:</span>{" "}
-              {activeBatch.subjectId?.name || "-"}
-            </p>
-            <p>
-              <span className="font-medium text-slate-800">Tutor:</span>{" "}
-              {activeBatch.teacherId?.userId?.name || "-"}
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-    </div>
-  );
-};
 
 /* ═══════════════════════════════════════════════════════
    VIEW 3: Class selected — show videos + Resource dropdown
    ═══════════════════════════════════════════════════════ */
-const ClassVideoView = ({ cls, batchId, activeBatch }) => {
+const ClassVideoView = ({ cls, batchId }) => {
   const navigate = useNavigate();
 
   const [pdfPreview, setPdfPreview] = useState({
@@ -217,16 +136,6 @@ const ClassVideoView = ({ cls, batchId, activeBatch }) => {
             {cls?.topic || "Class Session"}
           </h1>
         </div>
-
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => navigate(`/student/material`)}
-          className="gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Batches
-        </Button>
       </div>
 
       {/* Videos */}
@@ -294,53 +203,7 @@ const ClassVideoView = ({ cls, batchId, activeBatch }) => {
         </CardContent>
       </Card>
 
-      {/* Resources (PDFs) in main content too */}
-      {!isNotesLoading && allPdfs.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <button
-              type="button"
-              onClick={() => setResourcesOpen(!resourcesOpen)}
-              className="flex items-center gap-2 w-full text-left"
-            >
-              <FileText size={18} className="text-red-500" />
-              <CardTitle className="text-lg flex-1">
-                Resources ({allPdfs.length})
-              </CardTitle>
-              {resourcesOpen ? (
-                <ChevronUp size={18} className="text-slate-400" />
-              ) : (
-                <ChevronDown size={18} className="text-slate-400" />
-              )}
-            </button>
-          </CardHeader>
-          {resourcesOpen && (
-            <CardContent className="p-4 pt-0">
-              <div className="space-y-2">
-                {allPdfs.map((pdf, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => openPdfPreview(pdf)}
-                    className="flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-md border hover:bg-slate-50 hover:border-blue-200 transition-colors"
-                  >
-                    <FileText
-                      size={16}
-                      className="shrink-0 text-red-500"
-                    />
-                    <span className="text-sm text-slate-700 truncate">
-                      {pdf.name}
-                    </span>
-                    <span className="text-xs text-blue-600 ml-auto shrink-0">
-                      View
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </CardContent>
-          )}
-        </Card>
-      )}
+     
 
       {/* PDF Preview Dialog */}
       <Dialog
@@ -395,7 +258,6 @@ const ClassVideoView = ({ cls, batchId, activeBatch }) => {
    ═══════════════════════════════════════════════════════ */
 const StudentMaterialPage = () => {
   const { batchId, classId } = useParams();
-  const navigate = useNavigate();
   const {
     data: classesData,
     isLoading: isClassesLoading,
@@ -403,8 +265,8 @@ const StudentMaterialPage = () => {
   } = useGetMyClasses();
   const { data: batchesData, isLoading: isBatchesLoading } = useGetMyBatches();
 
-  const classes = classesData?.classes || [];
-  const batches = batchesData?.batches || [];
+  const classes = useMemo(() => classesData?.classes || [], [classesData?.classes]);
+  const batches = useMemo(() => batchesData?.batches || [], [batchesData?.batches]);
 
   const activeBatch = batches.find((b) => b._id === batchId);
 
@@ -423,9 +285,9 @@ const StudentMaterialPage = () => {
 
   // No auto-redirect — user picks classes from sidebar tree
 
-  // VIEW 1: No batch
+  // VIEW 1: No batch selected — keep the main content unchanged when only opening sidebar.
   if (!batchId) {
-    return <NoBatchView batches={batches} isLoading={isBatchesLoading} />;
+    return null;
   }
 
   // Loading
@@ -441,13 +303,17 @@ const StudentMaterialPage = () => {
     );
   }
 
+  // VIEW 2: Batch selected, class not selected — do not show a dedicated content page
+  if (batchId && !classId) {
+    return null;
+  }
+
   // VIEW 3: Batch + class selected
   if (batchId && classId && activeClass) {
     return (
       <ClassVideoView
         cls={activeClass}
         batchId={batchId}
-        activeBatch={activeBatch}
       />
     );
   }

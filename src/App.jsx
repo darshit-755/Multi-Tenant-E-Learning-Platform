@@ -127,7 +127,6 @@ function App() {
             <Route path="/student/dashboard" element={<StudentDashboard />} />
             <Route path="/student/classes" element={<StudentClasses />} />
             <Route path="/student/batches" element={<StudentBatches />} />
-            <Route path="/student/material" element={<StudentMaterial />} />
             <Route path="/student/material/:batchId" element={<StudentMaterial />} />
             <Route path="/student/material/:batchId/:classId" element={<StudentMaterial />} />
             <Route path="/student/attendance" element={<StudentAttendancePage />} />

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useQueries } from "@tanstack/react-query";
 import {
@@ -15,11 +15,20 @@ import {
   Layers,
   FolderOpen,
   FileText,
+  Maximize2,
 } from "lucide-react";
 import { useGetMyBatches } from "@/hooks/student/useGetMyBatches";
 import { useGetMyClasses } from "@/hooks/student/useGetMyClasses";
 import { getClassNotesApi } from "@/services/classNote.api";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const StudentSidebarContent = () => {
   const location = useLocation();
@@ -42,8 +51,77 @@ const StudentSidebarContent = () => {
 
   // Material dropdown open state (only for default menu mode)
   const [materialOpen, setMaterialOpen] = useState(false);
-  // Resources folder open state
-  const [resourcesOpen, setResourcesOpen] = useState(true);
+  // Resources folder open state per lecture
+  const [resourcesOpen, setResourcesOpen] = useState({});
+
+  const toggleResourcesOpen = (classId) =>
+    setResourcesOpen((prev) => ({
+      ...prev,
+      [classId]: !prev[classId],
+    }));
+
+  // PDF preview state
+  const [pdfPreview, setPdfPreview] = useState({ open: false, url: "", name: "" });
+  const pdfPreviewRef = useRef(null);
+
+  const openPdfPreview = ({ url, name }) => {
+    if (!url) return;
+    setPdfPreview((prev) => ({
+      ...prev,
+      open: true,
+      url,
+      name: name || "PDF Preview",
+    }));
+  };
+
+  const pdfPreviewDialog = (
+    <Dialog open={pdfPreview.open} onOpenChange={(open) => setPdfPreview((prev) => ({ ...prev, open }))}>
+      <DialogContent className="max-w-4xl h-[80vh]">
+        <DialogHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle>{pdfPreview.name || "PDF Preview"}</DialogTitle>
+              <DialogDescription>
+                Preview of the selected PDF document.
+              </DialogDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (pdfPreview.url) {
+                  const container = pdfPreviewRef.current;
+                  if (container?.requestFullscreen) {
+                    container.requestFullscreen().catch(() => {
+                      window.open(pdfPreview.url, "_blank", "noopener,noreferrer");
+                    });
+                  } else {
+                    window.open(pdfPreview.url, "_blank", "noopener,noreferrer");
+                  }
+                }
+              }}
+              className="gap-2"
+            >
+              <Maximize2 size={16} />
+              Fullscreen
+            </Button>
+          </div>
+        </DialogHeader>
+        <div className="flex-1 h-full" ref={pdfPreviewRef}>
+          {pdfPreview.url ? (
+            <iframe
+              title={pdfPreview.name || "PDF Preview"}
+              src={pdfPreview.url}
+              className="w-full h-full border-0"
+              allowFullScreen
+            />
+          ) : (
+            <p className="p-4 text-sm text-muted-foreground">No PDF available.</p>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 
   const isMaterialOpen = isMaterialRoute || materialOpen;
 
@@ -56,25 +134,6 @@ const StudentSidebarContent = () => {
     },
     enabled: Boolean(activeClassId),
   });
-
-  // Collect all PDFs from class notes
-  const classPdfs = useMemo(() => {
-    const notes = classNotesData?.notes || [];
-    const pdfs = [];
-    notes.forEach((note) => {
-      if (Array.isArray(note.pdfs)) {
-        note.pdfs.forEach((pdf) => {
-          const pdfUrl = typeof pdf === "string" ? pdf : pdf?.url;
-          const pdfName =
-            typeof pdf === "string"
-              ? String(pdf).split("/").pop() || "PDF"
-              : pdf?.name || String(pdf?.url || "").split("/").pop() || "PDF";
-          if (pdfUrl) pdfs.push({ url: pdfUrl, name: pdfName });
-        });
-      }
-    });
-    return pdfs;
-  }, [classNotesData]);
 
   // Get classes for active batch
   const classesForBatch = useMemo(
@@ -96,6 +155,30 @@ const StudentSidebarContent = () => {
       staleTime: 60 * 1000,
     })),
   });
+
+  const classPdfsMap = useMemo(() => {
+    const map = {};
+    classesForBatch.forEach((cls, idx) => {
+      const notes = notesQueries[idx]?.data?.notes || [];
+      const pdfs = [];
+
+      notes.forEach((note) => {
+        if (Array.isArray(note.pdfs)) {
+          note.pdfs.forEach((pdf) => {
+            const pdfUrl = typeof pdf === "string" ? pdf : pdf?.url;
+            const pdfName =
+              typeof pdf === "string"
+                ? String(pdf).split("/").pop() || "PDF"
+                : pdf?.name || String(pdf?.url || "").split("/").pop() || "PDF";
+            if (pdfUrl) pdfs.push({ url: pdfUrl, name: pdfName });
+          });
+        }
+      });
+
+      map[cls._id] = pdfs;
+    });
+    return map;
+  }, [classesForBatch, notesQueries]);
 
   const classLectureMetaMap = useMemo(() => {
     const map = {};
@@ -157,12 +240,13 @@ const StudentSidebarContent = () => {
      ═══════════════════════════════════════════════════════ */
   if (isMaterialRoute && activeBatchId) {
     return (
-      <div className="space-y-3">
+      <>
+        <div className="space-y-3">
         {/* Back to menu */}
         <button
           type="button"
-          onClick={() => navigate(`${basePath}/material`)}
-          className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors px-1"
+          onClick={() => navigate(`${basePath}/dashboard`)}
+          className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors px-1 cursor-pointer"
         >
           <ArrowLeft size={16} />
           Back to Menu
@@ -215,7 +299,7 @@ const StudentSidebarContent = () => {
                         )
                       }
                       className={cn(
-                        "flex items-center gap-2.5 w-full text-left px-2.5 py-2 rounded-lg text-xs transition-all group",
+                        "flex items-center gap-2.5 w-full text-left px-2.5 py-2 rounded-lg text-xs transition-all group cursor-pointer",
                         "text-slate-400 hover:bg-slate-800 hover:text-white",
                         isActive &&
                           "bg-blue-600/15 text-blue-300 ring-1 ring-blue-500/30"
@@ -243,41 +327,45 @@ const StudentSidebarContent = () => {
                       </span>
                     </button>
 
-                    {/* Resources folder — shown under the active/selected lecture */}
-                    {isActive && classPdfs.length > 0 && (
-                      <div className="ml-9 mt-1 mb-1">
-                        <button
-                          type="button"
-                          onClick={() => setResourcesOpen((prev) => !prev)}
-                          className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-white transition-colors w-full px-1 py-1"
-                        >
-                          {resourcesOpen ? (
-                            <ChevronDown size={12} className="shrink-0" />
-                          ) : (
-                            <ChevronRight size={12} className="shrink-0" />
-                          )}
-                          <FolderOpen size={12} className="shrink-0 text-yellow-500" />
-                          <span>Resources ({classPdfs.length})</span>
-                        </button>
+                    {/* Resources folder — shown under every lecture */}
+                    {(() => {
+                      const classPdfs = classPdfsMap[cls._id] || [];
+                      const isResourcesOpen = Boolean(resourcesOpen[cls._id]);
 
-                        {resourcesOpen && (
-                          <div className="ml-4 mt-0.5 space-y-0.5 border-l border-slate-700/50 pl-2">
-                            {classPdfs.map((pdf, pIdx) => (
-                              <a
-                                key={pIdx}
-                                href={pdf.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="flex items-center gap-1.5 text-[11px] text-slate-500 hover:text-white hover:bg-slate-800 rounded px-1.5 py-1 transition-colors"
-                              >
-                                <FileText size={11} className="shrink-0 text-red-400" />
-                                <span className="truncate">{pdf.name}</span>
-                              </a>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                      return classPdfs.length > 0 ? (
+                        <div className="ml-9 mt-1 mb-1">
+                          <button
+                            type="button"
+                            onClick={() => toggleResourcesOpen(cls._id)}
+                            className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-white transition-colors w-full px-1 py-1"
+                          >
+                            {isResourcesOpen ? (
+                              <ChevronDown size={12} className="shrink-0" />
+                            ) : (
+                              <ChevronRight size={12} className="shrink-0" />
+                            )}
+                            <FolderOpen size={12} className="shrink-0 text-yellow-500" />
+                            <span>Resources ({classPdfs.length})</span>
+                          </button>
+
+                          {isResourcesOpen && (
+                            <div className="ml-4 mt-0.5 space-y-0.5 border-l border-slate-700/50 pl-2">
+                              {classPdfs.map((pdf, pIdx) => (
+                                <button
+                                  key={pIdx}
+                                  type="button"
+                                  onClick={() => openPdfPreview({ url: pdf.url, name: pdf.name })}
+                                  className="flex items-center gap-1.5 text-[11px] text-slate-500 hover:text-white hover:bg-slate-800 rounded px-1.5 py-1 transition-colors w-full text-left cursor-pointer"
+                                >
+                                  <FileText size={11} className="shrink-0 text-red-400" />
+                                  <span className="truncate">{pdf.name}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : null;
+                    })()}
                   </div>
                 );
               })}
@@ -285,15 +373,18 @@ const StudentSidebarContent = () => {
           )}
         </div>
       </div>
-    );
+      {pdfPreviewDialog}
+    </>
+  );
   }
 
   /* ═══════════════════════════════════════════════════════
      MODE 1: Default menu with Material → Batches dropdown
      ═══════════════════════════════════════════════════════ */
   return (
-    <nav className="space-y-1">
-      {/* Regular menu items */}
+    <>
+      <nav className="space-y-1">
+        {/* Regular menu items */}
       {menuItems.map((item) => {
         const Icon = item.icon;
         const isActive =
@@ -321,7 +412,7 @@ const StudentSidebarContent = () => {
           type="button"
           onClick={() => setMaterialOpen((prev) => !prev)}
           className={cn(
-            "flex items-center gap-2 px-3 py-2 rounded-md transition-colors w-full text-left",
+            "flex items-center gap-2 px-3 py-2 rounded-md transition-colors w-full text-left cursor-pointer",
             "text-slate-300 hover:bg-slate-800 hover:text-white",
             isMaterialRoute && "bg-slate-800 text-white"
           )}
@@ -357,7 +448,7 @@ const StudentSidebarContent = () => {
                     }
                   }}
                   className={cn(
-                    "flex items-center gap-2 w-full text-left px-2 py-1.5 rounded-md text-sm transition-colors",
+                    "flex items-center gap-2 w-full text-left px-2 py-1.5 rounded-md text-sm transition-colors cursor-pointer",
                     "text-slate-400 hover:bg-slate-800 hover:text-white"
                   )}
                 >
@@ -374,6 +465,9 @@ const StudentSidebarContent = () => {
         )}
       </div>
     </nav>
+
+    {pdfPreviewDialog}
+    </>
   );
 };
 
