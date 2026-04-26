@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,12 @@ import { useGetStudents } from "@/hooks/tenant/useGetStudents";
 import { toast } from "sonner";
 
 export default function CreateBatch() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { batchId } = useParams();
+  const isAddPage = location.pathname === "/tenant/batches/add";
+  const isViewPage = location.pathname === "/tenant/batches/view";
+  const isEditPage = Boolean(batchId);
   const { mutateAsync: createBatch, isPending: isCreating } = useCreateBatch();
   const { mutateAsync: updateBatch, isPending: isUpdating } = useUpdateBatch();
   const { data: batchesData, isLoading } = useGetBatches();
@@ -167,10 +174,7 @@ export default function CreateBatch() {
   };
 
   const handleEdit = (batch) => {
-    setEditingBatch(batch);
-    setValue("name", batch.name || "");
-    setSelectedSubjectId(batch.subjectId?._id || "");
-    setSelectedTeacherId(batch.teacherId?._id || "");
+    navigate(`/tenant/batches/edit/${batch._id}`);
   };
 
   const handleCancelEdit = () => {
@@ -180,7 +184,21 @@ export default function CreateBatch() {
     setSelectedStudents([]);
     setShowStudentDropdown(false);
     reset();
+    if (isEditPage) {
+      navigate("/tenant/batches/view");
+    }
   };
+
+  useEffect(() => {
+    if (!isEditPage || !batches.length) return;
+    const batch = batches.find((item) => item._id === batchId);
+    if (!batch) return;
+
+    setEditingBatch(batch);
+    setValue("name", batch.name || "");
+    setSelectedSubjectId(batch.subjectId?._id || "");
+    setSelectedTeacherId(batch.teacherId?._id || "");
+  }, [isEditPage, batches, batchId, setValue]);
 
   const handleToggleStatus = async (batch) => {
     const nextStatus = batch.status === "completed" ? "active" : "completed";
@@ -196,9 +214,12 @@ export default function CreateBatch() {
   return (
     <div className="w-full max-w-6xl mx-auto space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-800">Create Batch</h1>
+        <h1 className="text-2xl font-semibold text-slate-800">
+          {isViewPage ? "All Batches" : isEditPage ? "Edit Batch" : "Create Batch"}
+        </h1>
       </div>
 
+      {!isViewPage && (
       <Card className="bg-white border border-slate-200 shadow-sm">
         <CardContent className="p-6">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -371,7 +392,9 @@ export default function CreateBatch() {
           </form>
         </CardContent>
       </Card>
+      )}
 
+      {isViewPage && (
       <Card>
         <CardContent className="p-6">
           <h2 className="text-lg font-semibold mb-4">All Batches</h2>
@@ -456,6 +479,7 @@ export default function CreateBatch() {
           )}
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

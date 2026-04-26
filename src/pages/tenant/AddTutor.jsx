@@ -1,5 +1,6 @@
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -15,12 +16,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -44,6 +39,12 @@ import {
 import { toast } from "sonner";
 
 export default function AddTutor() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { tutorId } = useParams();
+  const isAddPage = location.pathname === "/tenant/tutors/add";
+  const isViewPage = location.pathname === "/tenant/tutors/view";
+  const isEditPage = Boolean(tutorId);
   const { mutateAsync: createTutor, isPending: isCreating } =
     useRegisterTutor();
   const { mutateAsync: updateTutor, isPending: isUpdating } = useUpdateTutor();
@@ -63,8 +64,10 @@ export default function AddTutor() {
     reset,
     setValue,
     getValues,
+    watch,
     formState: { errors },
   } = useForm();
+  const statusValue = watch("status");
   register("subject", { required: "Subject is required" });
 
   const handleDelete = (id) => {
@@ -95,6 +98,7 @@ export default function AddTutor() {
         subjects: [selectedSubject],
         experienceYears: data.experienceYears,
         phone: data.phone,
+        status: data.status,
       };
       const res = await updateTutor({
         tutorId: editingTutor._id,
@@ -104,6 +108,7 @@ export default function AddTutor() {
         toast.success("Tutor updated successfully!");
         setEditingTutor(null);
         reset();
+        navigate("/tenant/tutors/view");
       }
       return;
     }
@@ -122,19 +127,16 @@ export default function AddTutor() {
   };
 
   const handleEdit = (tutor) => {
-    setEditingTutor(tutor);
-    setValue("name", tutor.name || "");
-    setValue("email", tutor.email || "");
-    setValue("password", "");
-    setValue("experienceYears", tutor.experienceYears ?? 0);
-    setValue("phone", normalizeIndianMobileNumber(tutor.phone || ""));
-    setSelectedSubject(tutor.subjects?.[0] || "");
+    navigate(`/tenant/tutors/edit/${tutor._id}`);
   };
 
   const handleCancelEdit = () => {
     setEditingTutor(null);
     setSelectedSubject("");
     reset();
+    if (isEditPage) {
+      navigate("/tenant/tutors/view");
+    }
   };
 
   const subjects = subjectsData?.subjects || [];
@@ -142,27 +144,31 @@ export default function AddTutor() {
     (subject) => subject.status === "active",
   );
 
-  const handleToggleStatus = async (tutor) => {
-    const nextStatus = tutor.status === "inactive" ? "active" : "inactive";
+  useEffect(() => {
+    if (!isEditPage || !tutors?.tutors?.length) return;
+    const tutor = tutors.tutors.find((item) => item._id === tutorId);
+    if (!tutor) return;
 
-    const res = await updateTutor({
-      tutorId: tutor._id,
-      data: { status: nextStatus },
-    });
-
-    if (res) {
-      toast.success(`Tutor ${nextStatus} successfully!`);
-    }
-  };
+    setEditingTutor(tutor);
+    setValue("name", tutor.name || "");
+    setValue("email", tutor.email || "");
+    setValue("password", "");
+    setValue("experienceYears", tutor.experienceYears ?? 0);
+    setValue("phone", normalizeIndianMobileNumber(tutor.phone || ""));
+    setValue("status", tutor.status || "active");
+    setSelectedSubject(tutor.subjects?.[0] || "");
+  }, [isEditPage, tutors, tutorId, setValue]);
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-8">
       {/* Page Title */}
       <div>
-        <h1 className="text-2xl font-semibold text-slate-800">Add Tutor</h1>
+        <h1 className="text-2xl font-semibold text-slate-800">
+          {isViewPage ? "All Tutors" : isEditPage ? "Edit Tutor" : "Add Tutor"}
+        </h1>
       </div>
 
-      {/* Add Tutor Form */}
+      {!isViewPage && (
       <Card className="bg-white border border-slate-200 shadow-sm">
         <CardContent className="p-6">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
@@ -341,6 +347,26 @@ export default function AddTutor() {
               )}
             </div>
 
+            {isEditMode && (
+              <div>
+                <Label>Status</Label>
+                <Select
+                  value={statusValue || "active"}
+                  onValueChange={(value) =>
+                    setValue("status", value, { shouldValidate: true })
+                  }
+                >
+                  <SelectTrigger className="mt-1 w-full">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="flex flex-col md:flex-row justify-center md:justify-end gap-2 pt-4 border-t">
               {isEditMode && (
                 <Button
@@ -369,11 +395,12 @@ export default function AddTutor() {
           </form>
         </CardContent>
       </Card>
+      )}
 
-      {/* Tutors Table */}
+      {isViewPage && (
       <Card>
         <CardContent className="p-6">
-          <h2 className="text-lg font-semibold mb-4">All Tutors</h2>
+          <h2 className="text-lg font-semibold mb-4">Tutors</h2>
 
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Loading tutors...</p>
@@ -388,7 +415,6 @@ export default function AddTutor() {
                     <TableHead>Experience</TableHead>
                     <TableHead>Phone</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Toggle</TableHead>
                     <TableHead>Created At</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -419,20 +445,6 @@ export default function AddTutor() {
                               ? "Inactive"
                               : "Active"}
                           </span>
-                        </TableCell>
-
-                        {/* Toggle Status */}
-                        <TableCell>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleToggleStatus(tutor)}
-                            disabled={isUpdating}
-                          >
-                            {tutor.status === "inactive"
-                              ? "Activate"
-                              : "Deactivate"}
-                          </Button>
                         </TableCell>
 
                         <TableCell>
@@ -472,6 +484,7 @@ export default function AddTutor() {
           )}
         </CardContent>
       </Card>
+      )}
 
       <ConfirmActionDialog
         open={Boolean(deleteTutorId)}

@@ -300,7 +300,11 @@ export default function ClassDoubtsPage({
             </div>
 
             <Button type="submit" disabled={addMessageMutation.isPending}>
-              {addMessageMutation.isPending ? "Sending..." : "Send Message"}
+              {addMessageMutation.isPending
+                ? "Sending..."
+                : currentRole === "tutor"
+                ? "Reply"
+                : "Convey Doubt"}
             </Button>
           </form>
         </CardContent>

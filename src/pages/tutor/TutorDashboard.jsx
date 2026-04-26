@@ -115,7 +115,8 @@ const TutorDashboard = () => {
     .filter((cls) => {
       if (!cls.date) return false;
       const classDate = normalizeDate(new Date(cls.date));
-      return classDate >= today;
+      const status = normalizeStatus(cls.status);
+      return classDate >= today && status !== "completed" && status !== "cancelled";
     })
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 

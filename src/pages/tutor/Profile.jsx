@@ -4,6 +4,7 @@ import { useGetProfile } from "@/hooks/tutor/useGetProfile";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { resolveMediaUrl } from "@/lib/media";
+import { Eye, EyeOff } from "lucide-react";
 import {
   handleIndianMobileInput,
   normalizeIndianMobileNumber,
@@ -37,6 +38,8 @@ const Profile = () => {
   const { mutateAsync, isPending } = useUpdateProfile();
   const { data: profileData } = useGetProfile();
   const [preview, setPreview] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     const profileUser = profileData?.user || user;
@@ -217,24 +220,44 @@ const Profile = () => {
             <label className="block text-sm font-medium text-slate-700">
               New Password
             </label>
-            <input
-              type="password"
-              {...register("newPassword")}
-              placeholder="Enter new password"
-              className="mt-1 w-full rounded-lg bg-white border border-slate-300 px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-            />
+            <div className="relative mt-1">
+              <input
+                type={showNewPassword ? "text" : "password"}
+                {...register("newPassword")}
+                placeholder="Enter new password"
+                className="w-full rounded-lg bg-white border border-slate-300 px-3 py-2 pr-10 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword((prev) => !prev)}
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 hover:text-slate-700"
+                aria-label={showNewPassword ? "Hide password" : "Show password"}
+              >
+                {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700">
               Confirm Password
             </label>
-            <input
-              type="password"
-              {...register("confirmPassword")}
-              placeholder="Confirm new password"
-              className="mt-1 w-full rounded-lg bg-white border border-slate-300 px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-            />
+            <div className="relative mt-1">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                {...register("confirmPassword")}
+                placeholder="Confirm new password"
+                className="w-full rounded-lg bg-white border border-slate-300 px-3 py-2 pr-10 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 hover:text-slate-700"
+                aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+              >
+                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
 
          

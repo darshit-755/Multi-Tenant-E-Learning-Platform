@@ -13,6 +13,7 @@ import {
   getProfile,
   getAllTutors,
   getAllStudents,
+  getStudentDetails,
   getAllBatches
 } from "../controllers/admin.controller.js";
 
@@ -105,6 +106,14 @@ router.get(
   authMiddleware,
   authorizeRoles("superadmin"),
   getAllStudents
+);
+
+// Get student details
+router.get(
+  "/student/:studentId",
+  authMiddleware,
+  authorizeRoles("superadmin"),
+  getStudentDetails
 );
 
 // Get all batches

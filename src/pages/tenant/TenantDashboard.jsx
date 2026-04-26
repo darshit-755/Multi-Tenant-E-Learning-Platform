@@ -45,6 +45,8 @@ const TenantDashboard = () => {
   const normalizeDate = (date) =>
     new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
+  const normalizeStatus = (status) => String(status || "").trim().toLowerCase();
+
   const today = normalizeDate(new Date());
 
   // Format selected date
@@ -67,7 +69,8 @@ const TenantDashboard = () => {
     .filter((cls) => {
       if (!cls.date) return false;
       const classDate = normalizeDate(new Date(cls.date));
-      return classDate >= today;
+      const status = normalizeStatus(cls.status);
+      return classDate >= today && status !== "completed" && status !== "cancelled";
     })
     .sort(
       (a, b) =>
@@ -194,11 +197,11 @@ const TenantDashboard = () => {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Latest 5 Added Tutors</CardTitle>
+          <CardTitle>Tutors</CardTitle>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate("/tenant/add-tutor")}
+            onClick={() => navigate("/tenant/tutors/view")}
           >
             View All
           </Button>

@@ -12,6 +12,7 @@ const getAttendanceColor = (value) => {
 
 const TutorAttendanceReport = () => {
   const [selectedBatch, setSelectedBatch] = useState('');
+  const [selectedStudent, setSelectedStudent] = useState('');
   const {
     data: batchesData,
     isLoading: isBatchesLoading,
@@ -24,11 +25,27 @@ const TutorAttendanceReport = () => {
   } = useGetAttendanceSummary(selectedBatch, { enabled: Boolean(selectedBatch) });
 
   const batches = batchesData?.batches || [];
+  const studentOptions = attendanceData?.summary || [];
+  const filteredSummary = useMemo(() => {
+    if (!attendanceData?.summary) return [];
+    if (!selectedStudent) return attendanceData.summary;
+    return attendanceData.summary.filter((student) => student.studentId === selectedStudent);
+  }, [attendanceData, selectedStudent]);
+
+  const selectedStudentReport = useMemo(() => {
+    if (!selectedStudent) return null;
+    return studentOptions.find((student) => student.studentId === selectedStudent) || null;
+  }, [studentOptions, selectedStudent]);
 
   const loading = isBatchesLoading || (Boolean(selectedBatch) && isSummaryLoading);
   const error = isBatchesError || isSummaryError
     ? 'Failed to load attendance data. Please try again.'
     : '';
+
+  const handleBatchChange = (event) => {
+    setSelectedBatch(event.target.value);
+    setSelectedStudent('');
+  };
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-5 p-2 sm:p-4">
@@ -42,7 +59,7 @@ const TutorAttendanceReport = () => {
         <select
           id="batch-select"
           value={selectedBatch}
-          onChange={(e) => setSelectedBatch(e.target.value)}
+          onChange={handleBatchChange}
           className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:border-slate-500 focus:outline-none"
         >
           <option value="">-- Choose a batch --</option>
@@ -52,6 +69,25 @@ const TutorAttendanceReport = () => {
             </option>
           ))}
         </select>
+
+        {selectedBatch && (
+          <div className="mt-4">
+            <label htmlFor="student-select" className="mb-2 block text-sm font-medium text-slate-700">Select Student:</label>
+            <select
+              id="student-select"
+              value={selectedStudent}
+              onChange={(e) => setSelectedStudent(e.target.value)}
+              className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:border-slate-500 focus:outline-none"
+            >
+              <option value="">-- All students --</option>
+              {studentOptions.map((student) => (
+                <option key={student.studentId} value={student.studentId}>
+                  {student.studentName}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {loading && (
@@ -83,7 +119,35 @@ const TutorAttendanceReport = () => {
             </div>
           </div>
 
-          {attendanceData.summary && attendanceData.summary.length > 0 ? (
+          {selectedStudentReport && (
+            <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Individual Report</p>
+              <div className="mt-2 grid gap-3 sm:grid-cols-5">
+                <div>
+                  <p className="text-xs text-slate-500">Student</p>
+                  <p className="text-sm font-semibold text-slate-900">{selectedStudentReport.studentName}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Total Classes</p>
+                  <p className="text-sm font-semibold text-slate-900">{selectedStudentReport.totalClasses}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Present</p>
+                  <p className="text-sm font-semibold text-emerald-700">{selectedStudentReport.presentCount}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Absent</p>
+                  <p className="text-sm font-semibold text-rose-700">{selectedStudentReport.absentCount}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Attendance %</p>
+                  <p className="text-sm font-semibold text-slate-900">{selectedStudentReport.attendancePercentage}%</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {filteredSummary.length > 0 ? (
             <>
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
@@ -98,7 +162,7 @@ const TutorAttendanceReport = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {attendanceData.summary.map((student) => (
+                    {filteredSummary.map((student) => (
                       <tr
                         key={student.studentId}
                         className="border-b border-slate-100"
@@ -130,7 +194,9 @@ const TutorAttendanceReport = () => {
             </>
           ) : (
             <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
-              No attendance data available for this batch.
+              {selectedStudent
+                ? 'No attendance data available for this student in this batch.'
+                : 'No attendance data available for this batch.'}
             </div>
           )}
         </div>

@@ -294,24 +294,14 @@ export default function TutorNotesPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center justify-end gap-2">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button size="sm" className="h-8 gap-1.5">
-                                  <Plus className="h-3.5 w-3.5" />
-                                  Add
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-44">
-                                <DropdownMenuItem onClick={() => openAddDialog(cls, "note")}>
-                                  <FileText className="mr-2 h-4 w-4" />
-                                  Add Note
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => openAddDialog(cls, "videoLecture")}>
-                                  <Video className="mr-2 h-4 w-4" />
-                                  Add Video Lecture
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            <Button
+                              size="sm"
+                              className="h-8 gap-1.5"
+                              onClick={() => openAddDialog(cls, "note")}
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                              Add Material
+                            </Button>
                             <Button
                               size="sm"
                               variant="outline"
@@ -366,8 +356,9 @@ export default function TutorNotesPage() {
                 value={watchedContentType}
                 onValueChange={(value) => {
                   const nextType = value === "videoLecture" ? "videoLecture" : "note";
+                  const currentTitle = watch("title") || selectedClass?.topic || "";
                   reset({
-                    contentType: nextType, title: "", content: "",
+                    contentType: nextType, title: currentTitle, content: "",
                     lectureLink: "", notePdfs: null, lectureVideos: null,
                   });
                 }}

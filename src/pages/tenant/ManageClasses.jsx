@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,6 +37,12 @@ import { formatDateWithDay } from "@/utils/classUtils";
 import { toast } from "sonner";
 
 export default function ManageClasses() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { classId } = useParams();
+  const isAddPage = location.pathname === "/tenant/classes/add";
+  const isViewPage = location.pathname === "/tenant/classes/view";
+  const isEditPage = Boolean(classId);
   const {
     classes,
     isLoading,
@@ -210,6 +217,9 @@ export default function ManageClasses() {
   const resetFormState = () => {
     setEditingClass(null);
     reset(defaultFormValues);
+    if (isEditPage) {
+      navigate("/tenant/classes/view");
+    }
   };
 
   const onSubmit = async (data) => {
@@ -253,21 +263,7 @@ export default function ManageClasses() {
   };
 
   const handleEdit = (cls) => {
-    setEditingClass(cls);
-    reset({
-      ...defaultFormValues,
-      topic: cls.topic || "",
-      subjectId: cls.subjectId?._id || "",
-      batchId: cls.batchId?._id || "",
-      teacherId: cls.teacherId?._id || "",
-      date: cls.date || "",
-      startTime: cls.startTime || "",
-      duration: cls.duration || 60,
-      videoProvider: cls.videoProvider || "manual",
-      privacy: cls.privacy || "",
-      reminderTime: String(cls.reminderTime ?? 0),
-      videoLink: cls.videoLink || "",
-    });
+    navigate(`/tenant/classes/edit/${cls._id}`);
   };
 
   const handleStatusChange = async (cls, newStatus) => {
@@ -296,14 +292,37 @@ export default function ManageClasses() {
     });
   };
 
+  useEffect(() => {
+    if (!isEditPage || !classes.length) return;
+    const cls = classes.find((item) => item._id === classId);
+    if (!cls) return;
+
+    setEditingClass(cls);
+    reset({
+      ...defaultFormValues,
+      topic: cls.topic || "",
+      subjectId: cls.subjectId?._id || "",
+      batchId: cls.batchId?._id || "",
+      teacherId: cls.teacherId?._id || "",
+      date: cls.date || "",
+      startTime: cls.startTime || "",
+      duration: cls.duration || 60,
+      videoProvider: cls.videoProvider || "manual",
+      privacy: cls.privacy || "",
+      reminderTime: String(cls.reminderTime ?? 0),
+      videoLink: cls.videoLink || "",
+    });
+  }, [isEditPage, classes, classId, reset]);
+
   return (
     <div className="w-full max-w-6xl mx-auto space-y-8">
       <div>
         <h1 className="text-2xl font-semibold text-slate-800">
-          Manage Classes
+          {isViewPage ? "All Classes" : isEditPage ? "Edit Class" : "Add Class"}
         </h1>
       </div>
 
+      {!isViewPage && (
       <Card className="bg-white border border-slate-200 shadow-sm">
         <CardContent className="p-6">
           <ClassForm
@@ -326,7 +345,9 @@ export default function ManageClasses() {
           />
         </CardContent>
       </Card>
+      )}
 
+      {isViewPage && (
       <Card>
         <CardContent className="p-6">
           <h2 className="text-lg font-semibold mb-4">All Classes</h2>
@@ -468,6 +489,7 @@ export default function ManageClasses() {
           )}
         </CardContent>
       </Card>
+      )}
 
       <ConfirmActionDialog
         open={Boolean(deleteClassId)}

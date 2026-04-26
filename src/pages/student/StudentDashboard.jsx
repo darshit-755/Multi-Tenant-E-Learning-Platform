@@ -40,6 +40,8 @@ const StudentDashboard = () => {
   const normalizeDate = (date) =>
     new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
+  const normalizeStatus = (status) => String(status || "").trim().toLowerCase();
+
   const today = normalizeDate(new Date());
 
   // Format selected date
@@ -62,7 +64,8 @@ const StudentDashboard = () => {
     .filter((cls) => {
       if (!cls.date) return false;
       const classDate = normalizeDate(new Date(cls.date));
-      return classDate >= today;
+      const status = normalizeStatus(cls.status);
+      return classDate >= today && status !== "completed" && status !== "cancelled";
     })
     .sort(
       (a, b) =>

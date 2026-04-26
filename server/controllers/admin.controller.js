@@ -368,6 +368,50 @@ export const getAllStudents = async (req, res) => {
 };
 
 /**
+ * Get student details by ID
+ */
+export const getStudentDetails = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+
+    const student = await Student.findById(studentId)
+      .populate("userId", "name email")
+      .populate("tenantId", "name");
+
+    if (!student) {
+      return res.status(404).json({
+        message: "Student not found",
+      });
+    }
+
+    // Get batches for this student
+    const batches = await Batch.find({
+      studentIds: studentId,
+    })
+      .populate("subjectId", "name")
+      .select("name subjectId");
+
+    const studentWithBatches = {
+      ...student.toObject(),
+      batches: batches.map((batch) => ({
+        _id: batch._id,
+        name: batch.name,
+        subject: batch.subjectId?.name || "N/A",
+      })),
+    };
+
+    return res.status(200).json({
+      student: studentWithBatches,
+    });
+  } catch (error) {
+    console.error("Get Student Details Error:", error);
+    return res.status(500).json({
+      message: "Server Error",
+    });
+  }
+};
+
+/**
  * Get all batches (Admin Dashboard with pagination)
  */
 export const getAllBatches = async (req, res) => {

@@ -119,19 +119,6 @@ const TutorSidebarContent = () => {
         Notes
       </Link>
 
-      <Link
-        to={`${basePath}/view-material`}
-        className={cn(
-          "flex items-center gap-2 px-3 py-2 rounded-md transition-colors",
-          "text-slate-300 hover:bg-slate-800 hover:text-white",
-          location.pathname === `${basePath}/view-material` &&
-          "bg-slate-800 text-white"
-        )}
-      >
-        <BookOpen size={18} />
-        View Material
-      </Link>
-
     </nav>
   );
 };

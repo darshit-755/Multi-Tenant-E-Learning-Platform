@@ -1,5 +1,6 @@
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,11 +16,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { useRegisterStudent } from "@/hooks/tenant/useRegisterStudent";
 import { useGetStudents } from "@/hooks/tenant/useGetStudents";
@@ -35,6 +37,12 @@ import {
 import { toast } from "sonner";
 
 export default function AddStudent() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { studentId } = useParams();
+  const isAddPage = location.pathname === "/tenant/students/add";
+  const isViewPage = location.pathname === "/tenant/students/view";
+  const isEditPage = Boolean(studentId);
   const { mutateAsync: createStudent, isPending: isCreating } =
     useRegisterStudent();
   const { mutateAsync: updateStudent, isPending: isUpdating } =
@@ -50,8 +58,10 @@ export default function AddStudent() {
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors },
   } = useForm();
+  const statusValue = watch("status");
 
   const handleDelete = (id) => {
     setDeleteStudentId(id);
@@ -78,6 +88,7 @@ export default function AddStudent() {
         board: data.board,
         phone: data.phone,
         parentName: data.parentName,
+        status: data.status,
       };
       const res = await updateStudent({
         studentId: editingStudent._id,
@@ -87,6 +98,7 @@ export default function AddStudent() {
         toast.success("Student updated successfully!");
         setEditingStudent(null);
         reset();
+        navigate("/tenant/students/view");
       }
       return;
     }
@@ -99,6 +111,22 @@ export default function AddStudent() {
   };
 
   const handleEdit = (student) => {
+    navigate(`/tenant/students/edit/${student._id}`);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingStudent(null);
+    reset();
+    if (isEditPage) {
+      navigate("/tenant/students/view");
+    }
+  };
+
+  useEffect(() => {
+    if (!isEditPage || !students?.students?.length) return;
+    const student = students.students.find((item) => item._id === studentId);
+    if (!student) return;
+
     setEditingStudent(student);
     setValue("name", student.name || "");
     setValue("email", student.email || "");
@@ -108,32 +136,18 @@ export default function AddStudent() {
     setValue("board", student.board || "");
     setValue("phone", normalizeIndianMobileNumber(student.phone || ""));
     setValue("parentName", student.parentName || "");
-  };
-
-  const handleCancelEdit = () => {
-    setEditingStudent(null);
-    reset();
-  };
-
-  const handleToggleStatus = async (student) => {
-    const nextStatus = student.status === "inactive" ? "active" : "inactive";
-
-    const res = await updateStudent({
-      studentId: student._id,
-      data: { status: nextStatus },
-    });
-
-    if (res) {
-      toast.success(`Student ${nextStatus} successfully!`);
-    }
-  };
+    setValue("status", student.status || "active");
+  }, [isEditPage, students, studentId, setValue]);
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-800">Add Student</h1>
+        <h1 className="text-2xl font-semibold text-slate-800">
+          {isViewPage ? "All Students" : isEditPage ? "Edit Student" : "Add Student"}
+        </h1>
       </div>
 
+      {!isViewPage && (
       <Card className="bg-white border border-slate-200 shadow-sm">
         <CardContent className="p-6">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
@@ -272,6 +286,26 @@ export default function AddStudent() {
               )}
             </div>
 
+            {isEditMode && (
+              <div>
+                <Label>Status</Label>
+                <Select
+                  value={statusValue || "active"}
+                  onValueChange={(value) =>
+                    setValue("status", value, { shouldValidate: true })
+                  }
+                >
+                  <SelectTrigger className="mt-1 w-full">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="flex flex-col md:flex-row justify-center md:justify-end gap-2 pt-4 border-t">
               {isEditMode && (
                 <Button
@@ -300,7 +334,9 @@ export default function AddStudent() {
           </form>
         </CardContent>
       </Card>
+      )}
 
+      {isViewPage && (
       <Card>
         <CardContent className="p-6">
           <h2 className="text-lg font-semibold mb-4">All Students</h2>
@@ -320,7 +356,6 @@ export default function AddStudent() {
                     <TableHead>Phone</TableHead>
                     <TableHead>Parent</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Toggle</TableHead>
                     <TableHead>Created At</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -351,20 +386,6 @@ export default function AddStudent() {
                               ? "Inactive"
                               : "Active"}
                           </span>
-                        </TableCell>
-
-                        {/* Toggle Status */}
-                        <TableCell>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleToggleStatus(student)}
-                            disabled={isUpdating}
-                          >
-                            {student.status === "inactive"
-                              ? "Activate"
-                              : "Deactivate"}
-                          </Button>
                         </TableCell>
 
                         <TableCell>
@@ -404,6 +425,7 @@ export default function AddStudent() {
           )}
         </CardContent>
       </Card>
+      )}
 
       <ConfirmActionDialog
         open={Boolean(deleteStudentId)}
