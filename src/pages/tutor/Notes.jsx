@@ -52,7 +52,7 @@ export default function TutorNotesPage() {
   } = useForm({
     defaultValues: {
       contentType: "note", title: "", content: "",
-      lectureLink: "", notePdfs: null, lectureVideos: null,
+      lectureLink: "", notePdfs: null, lectureVideos: null, pdfFileName: "",
     },
   });
 
@@ -121,14 +121,19 @@ export default function TutorNotesPage() {
         title: cls?.topic || "",
         content: note.content || "",
         lectureLink: note.lectureLink || "",
-        notePdfs: null, lectureVideos: null,
+        notePdfs: null,
+        lectureVideos: null,
+        pdfFileName:
+          Array.isArray(note.pdfs) && note.pdfs.length > 0
+            ? String(note.pdfs[0]?.name || "")
+            : "",
       });
     } else {
       setEditNoteId(null);
       reset({
         contentType, title: cls?.topic || "",
         content: "", lectureLink: "",
-        notePdfs: null, lectureVideos: null,
+        notePdfs: null, lectureVideos: null, pdfFileName: "",
       });
     }
     setIsAddDialogOpen(true);
@@ -149,6 +154,7 @@ export default function TutorNotesPage() {
     const title = String(values.title || "").trim();
     const content = String(values.content || "").trim();
     const lectureLink = String(values.lectureLink || "").trim();
+    const pdfFileName = String(values.pdfFileName || "").trim();
     const files = values.notePdfs ? Array.from(values.notePdfs) : [];
     const videoFiles = values.lectureVideos ? Array.from(values.lectureVideos) : [];
 
@@ -164,19 +170,25 @@ export default function TutorNotesPage() {
       setError("notePdfs", { type: "validate", message: "Only PDF files are allowed" });
       toast.error("Only PDF files are allowed"); return;
     }
+    if (contentType === "note" && files.length > 0 && !pdfFileName) {
+      setError("pdfFileName", { type: "validate", message: "PDF file name is required when uploading PDF" });
+      toast.error("Add a PDF file name");
+      return;
+    }
     const nonVideoFile = videoFiles.find((f) => !f.type.startsWith("video/"));
     if (nonVideoFile) {
       setError("lectureVideos", { type: "validate", message: "Only video files are allowed" });
       toast.error("Only video files are allowed"); return;
     }
 
-    clearErrors("notePdfs"); clearErrors("lectureVideos");
+    clearErrors("notePdfs"); clearErrors("lectureVideos"); clearErrors("pdfFileName");
 
     const payload = new FormData();
     payload.append("contentType", contentType);
     payload.append("title", title);
     payload.append("content", content);
     payload.append("lectureLink", lectureLink);
+    payload.append("pdfFileName", pdfFileName);
     files.forEach((f) => payload.append("notePdfs", f));
     videoFiles.forEach((f) => payload.append("lectureVideos", f));
 
@@ -213,7 +225,7 @@ export default function TutorNotesPage() {
   const hasPdfs = notes.some((n) => Array.isArray(n.pdfs) && n.pdfs.length > 0 || n.content);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+    <div className="min-h-screen bg-linear-to-b from-background to-muted/20">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -331,7 +343,7 @@ export default function TutorNotesPage() {
           if (!open) {
             reset({
               contentType: "note", title: "", content: "",
-              lectureLink: "", notePdfs: null, lectureVideos: null,
+              lectureLink: "", notePdfs: null, lectureVideos: null, pdfFileName: "",
             });
           }
         }}
@@ -359,7 +371,7 @@ export default function TutorNotesPage() {
                   const currentTitle = watch("title") || selectedClass?.topic || "";
                   reset({
                     contentType: nextType, title: currentTitle, content: "",
-                    lectureLink: "", notePdfs: null, lectureVideos: null,
+                    lectureLink: "", notePdfs: null, lectureVideos: null, pdfFileName: "",
                   });
                 }}
               >
@@ -391,7 +403,6 @@ export default function TutorNotesPage() {
                 readonly="readonly"
               />
             </div>
-
             {watchedContentType === "note" ? (
               <>
                 <div className="space-y-2">
@@ -404,7 +415,22 @@ export default function TutorNotesPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="note-pdfs">PDFs (optional)</Label>
+                  <Label htmlFor="pdf-file-name">PDF File Name</Label>
+                  <Input
+                    id="pdf-file-name"
+                    type="text"
+                    placeholder="Enter display name for PDFs"
+                    {...register("pdfFileName")}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    This name is shown to students for uploaded PDFs.
+                  </p>
+                  {errors.pdfFileName?.message && (
+                    <p className="text-xs text-destructive">{errors.pdfFileName.message}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="note-pdfs">PDFs</Label>
                   <Input
                     id="note-pdfs"
                     type="file"
@@ -422,6 +448,7 @@ export default function TutorNotesPage() {
                     <p className="text-xs text-destructive">{errors.notePdfs.message}</p>
                   )}
                 </div>
+
               </>
             ) : (
               <>
@@ -486,12 +513,12 @@ export default function TutorNotesPage() {
       >
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Class Materials For 
+            <DialogTitle>Class Materials For
               {selectedClass
                 ? ` "${selectedClass.topic || "Class Session"}"`
                 : "Class notes"}
             </DialogTitle>
-        
+
           </DialogHeader>
 
           <div className="h-[65vh] overflow-y-auto pr-1">
@@ -518,32 +545,32 @@ export default function TutorNotesPage() {
               </div>
             ) : (
               <Tabs value={materialTab} onValueChange={setMaterialTab} className="w-full">
-  <TabsList className="grid h-11 w-full grid-cols-2 rounded-xl bg-muted/60 p-1">
-    <TabsTrigger
-      value="video"
-      className="gap-2 rounded-lg text-sm font-medium text-muted-foreground transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-    >
-      <Video className="h-4 w-4" />
-      Videos
-      {hasVideos && (
-        <span className="ml-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-          {notes.filter((n) => (Array.isArray(n.videos) && n.videos.length > 0) || n.lectureLink).length}
-        </span>
-      )}
-    </TabsTrigger>
-    <TabsTrigger
-      value="pdf"
-      className="gap-2 rounded-lg text-sm font-medium text-muted-foreground transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-    >
-      <FileIcon className="h-4 w-4" />
-      PDFs & Notes
-      {hasPdfs && (
-        <span className="ml-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-          {notes.filter((n) => (Array.isArray(n.pdfs) && n.pdfs.length > 0) || n.content).length}
-        </span>
-      )}
-    </TabsTrigger>
-  </TabsList>
+                <TabsList className="grid h-11 w-full grid-cols-2 rounded-xl bg-muted/60 p-1">
+                  <TabsTrigger
+                    value="video"
+                    className="gap-2 rounded-lg text-sm font-medium text-muted-foreground transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                  >
+                    <Video className="h-4 w-4" />
+                    Videos
+                    {hasVideos && (
+                      <span className="ml-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                        {notes.filter((n) => (Array.isArray(n.videos) && n.videos.length > 0) || n.lectureLink).length}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="pdf"
+                    className="gap-2 rounded-lg text-sm font-medium text-muted-foreground transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                  >
+                    <FileIcon className="h-4 w-4" />
+                    PDFs & Notes
+                    {hasPdfs && (
+                      <span className="ml-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                        {notes.filter((n) => (Array.isArray(n.pdfs) && n.pdfs.length > 0) || n.content).length}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                </TabsList>
 
                 <TabsContent value="video" className="mt-4 space-y-3">
                   {!hasVideos ? (
@@ -639,7 +666,7 @@ export default function TutorNotesPage() {
                             <div className="min-w-0">
                               <h3 className="font-medium">{note.title || "Class Note"}</h3>
                               <div className="mt-1 flex flex-wrap items-center gap-2">
-                               
+
                                 {note.createdAt && (
                                   <span className="text-xs text-muted-foreground">
                                     {new Date(note.createdAt).toLocaleString()}
@@ -692,7 +719,7 @@ export default function TutorNotesPage() {
                                     className="h-8 gap-1.5 text-xs"
                                   >
                                     <FileIcon className="h-3.5 w-3.5 text-primary" />
-                                    <span className="max-w-[180px] truncate">{pdfName}</span>
+                                    <span className="max-w-45 truncate">{pdfName}</span>
                                   </Button>
                                 );
                               })}

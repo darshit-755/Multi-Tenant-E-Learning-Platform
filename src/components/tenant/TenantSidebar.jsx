@@ -13,14 +13,14 @@ import { cn } from "@/lib/utils";
 
 const TenantSidebarContent = () => {
   const location = useLocation();
-  const [openMenus, setOpenMenus] = useState({
-    tutors: true,
-    students: true,
-    batches: true,
-    classes: true,
-  });
-
   const basePath = `/tenant`;
+  const [openMenus, setOpenMenus] = useState(() => ({
+    tutors: location.pathname.startsWith(`${basePath}/tutors`),
+    students: location.pathname.startsWith(`${basePath}/students`),
+    batches: location.pathname.startsWith(`${basePath}/batches`),
+    classes: location.pathname.startsWith(`${basePath}/classes`),
+  }));
+
   const isPathActive = (paths) => paths.some((path) => location.pathname.startsWith(path));
 
   const sectionClass = "flex items-center justify-between w-full px-3 py-2 rounded-md transition-colors text-slate-300 hover:bg-slate-800 hover:text-white";

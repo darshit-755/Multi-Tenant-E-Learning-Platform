@@ -78,3 +78,12 @@ export const updateAttendanceRecord = async (attendanceId, present, notes) => {
     throw error.response?.data || error.message;
   }
 };
+
+export const markVideoAttendance = async (classId) => {
+  try {
+    const response = await API.post("/attendance/video-mark", { classId });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};

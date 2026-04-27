@@ -46,6 +46,15 @@ const TenantDashboard = () => {
     new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
   const normalizeStatus = (status) => String(status || "").trim().toLowerCase();
+  const isClosedStatus = (status) => {
+    const normalized = normalizeStatus(status);
+    return (
+      normalized === "completed" ||
+      normalized === "complete" ||
+      normalized === "cancelled" ||
+      normalized === "canceled"
+    );
+  };
 
   const today = normalizeDate(new Date());
 
@@ -69,8 +78,7 @@ const TenantDashboard = () => {
     .filter((cls) => {
       if (!cls.date) return false;
       const classDate = normalizeDate(new Date(cls.date));
-      const status = normalizeStatus(cls.status);
-      return classDate >= today && status !== "completed" && status !== "cancelled";
+      return classDate >= today && !isClosedStatus(cls.status);
     })
     .sort(
       (a, b) =>

@@ -42,6 +42,15 @@ const TutorDashboard = () => {
     new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
   const normalizeStatus = (status) => String(status || "").trim().toLowerCase();
+  const isClosedStatus = (status) => {
+    const normalized = normalizeStatus(status);
+    return (
+      normalized === "completed" ||
+      normalized === "complete" ||
+      normalized === "cancelled" ||
+      normalized === "canceled"
+    );
+  };
 
   const parseClassStartDateTime = (cls) => {
     if (!cls?.date || !cls?.startTime) return null;
@@ -86,8 +95,7 @@ const TutorDashboard = () => {
   const canShowJoinButton = (cls) => {
     if (!cls?.videoLink) return false;
 
-    const status = normalizeStatus(cls.status);
-    if (status === "cancelled" || status === "completed") return false;
+    if (isClosedStatus(cls.status)) return false;
 
     const cutoffTime = getJoinCutoffTime(cls);
     if (!cutoffTime) return true;
@@ -115,8 +123,7 @@ const TutorDashboard = () => {
     .filter((cls) => {
       if (!cls.date) return false;
       const classDate = normalizeDate(new Date(cls.date));
-      const status = normalizeStatus(cls.status);
-      return classDate >= today && status !== "completed" && status !== "cancelled";
+      return classDate >= today && !isClosedStatus(cls.status);
     })
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 

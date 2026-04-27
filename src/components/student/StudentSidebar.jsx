@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useQueries } from "@tanstack/react-query";
 import {
@@ -15,26 +15,20 @@ import {
   Layers,
   FolderOpen,
   FileText,
-  Maximize2,
+  CheckCircle2,
 } from "lucide-react";
 import { useGetMyBatches } from "@/hooks/student/useGetMyBatches";
 import { useGetMyClasses } from "@/hooks/student/useGetMyClasses";
 import { getClassNotesApi } from "@/services/classNote.api";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { useVideoProgress } from "@/contexts/VideoProgressContext";
 
 const StudentSidebarContent = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { data: batchesData } = useGetMyBatches();
   const { data: classesData } = useGetMyClasses();
+  const { getClassProgress } = useVideoProgress();
 
   const basePath = `/student`;
   const isMaterialRoute = location.pathname.startsWith(`${basePath}/material`);
@@ -60,68 +54,17 @@ const StudentSidebarContent = () => {
       [classId]: !prev[classId],
     }));
 
-  // PDF preview state
-  const [pdfPreview, setPdfPreview] = useState({ open: false, url: "", name: "" });
-  const pdfPreviewRef = useRef(null);
+  const openPdfInMaterialView = ({ batchId, classId, url, name }) => {
+    if (!batchId || !classId || !url) return;
 
-  const openPdfPreview = ({ url, name }) => {
-    if (!url) return;
-    setPdfPreview((prev) => ({
-      ...prev,
-      open: true,
-      url,
+    const query = new URLSearchParams({
+      view: "pdf",
+      pdf: url,
       name: name || "PDF Preview",
-    }));
-  };
+    });
 
-  const pdfPreviewDialog = (
-    <Dialog open={pdfPreview.open} onOpenChange={(open) => setPdfPreview((prev) => ({ ...prev, open }))}>
-      <DialogContent className="max-w-4xl h-[80vh]">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle>{pdfPreview.name || "PDF Preview"}</DialogTitle>
-              <DialogDescription>
-                Preview of the selected PDF document.
-              </DialogDescription>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                if (pdfPreview.url) {
-                  const container = pdfPreviewRef.current;
-                  if (container?.requestFullscreen) {
-                    container.requestFullscreen().catch(() => {
-                      window.open(pdfPreview.url, "_blank", "noopener,noreferrer");
-                    });
-                  } else {
-                    window.open(pdfPreview.url, "_blank", "noopener,noreferrer");
-                  }
-                }
-              }}
-              className="gap-2"
-            >
-              <Maximize2 size={16} />
-              Fullscreen
-            </Button>
-          </div>
-        </DialogHeader>
-        <div className="flex-1 h-full" ref={pdfPreviewRef}>
-          {pdfPreview.url ? (
-            <iframe
-              title={pdfPreview.name || "PDF Preview"}
-              src={pdfPreview.url}
-              className="w-full h-full border-0"
-              allowFullScreen
-            />
-          ) : (
-            <p className="p-4 text-sm text-muted-foreground">No PDF available.</p>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
+    navigate(`${basePath}/material/${batchId}/${classId}?${query.toString()}`);
+  };
 
   const isMaterialOpen = isMaterialRoute || materialOpen;
 
@@ -262,8 +205,10 @@ const StudentSidebarContent = () => {
               </p>
             </div>
             <p className="text-[11px] text-slate-400 truncate">
-              {activeBatch.subjectId?.name || "—"} •{" "}
-              {activeBatch.teacherId?.userId?.name || "—"}
+              Subject: {activeBatch.subjectId?.name || "—"} 
+            </p>
+            <p className="text-[11px] text-slate-400 truncate">
+               Tutor: {activeBatch.teacherId?.userId?.name || "—"}
             </p>
           </div>
         )}
@@ -289,6 +234,9 @@ const StudentSidebarContent = () => {
                   label: "Class Session (No video yet)",
                   hasVideo: false,
                 };
+                const clsProgress = getClassProgress(cls._id);
+                const progressPercent = clsProgress?.maxProgress || 0;
+                const isWatched = progressPercent >= 75;
                 return (
                   <div key={cls._id}>
                     <button
@@ -299,32 +247,65 @@ const StudentSidebarContent = () => {
                         )
                       }
                       className={cn(
-                        "flex items-center gap-2.5 w-full text-left px-2.5 py-2 rounded-lg text-xs transition-all group cursor-pointer",
+                        "flex flex-col w-full text-left px-2.5 py-2 rounded-lg text-xs transition-all group cursor-pointer",
                         "text-slate-400 hover:bg-slate-800 hover:text-white",
                         isActive &&
                           "bg-blue-600/15 text-blue-300 ring-1 ring-blue-500/30"
                       )}
                     >
-                      <span
-                        className={cn(
-                          "text-[10px] font-mono shrink-0 w-4 text-right",
-                          isActive ? "text-blue-400" : "text-slate-600"
+                      <div className="flex items-center gap-2.5 w-full">
+                        <span
+                          className={cn(
+                            "text-[10px] font-mono shrink-0 w-4 text-right",
+                            isActive ? "text-blue-400" : "text-slate-600"
+                          )}
+                        >
+                          {index + 1}
+                        </span>
+                        {isWatched ? (
+                          <CheckCircle2
+                            size={12}
+                            className="shrink-0 text-green-400"
+                          />
+                        ) : (
+                          <Play
+                            size={12}
+                            className={cn(
+                              "shrink-0",
+                              isActive
+                                ? "text-blue-400 fill-blue-400"
+                                : "text-slate-600 group-hover:text-blue-400"
+                            )}
+                          />
                         )}
-                      >
-                        {index + 1}
-                      </span>
-                      <Play
-                        size={12}
-                        className={cn(
-                          "shrink-0",
-                          isActive
-                            ? "text-blue-400 fill-blue-400"
-                            : "text-slate-600 group-hover:text-blue-400"
+                        <span className="truncate font-medium flex-1">
+                          {lectureMeta.label}
+                        </span>
+                        {progressPercent > 0 && (
+                          <span
+                            className={cn(
+                              "text-[10px] font-semibold tabular-nums shrink-0",
+                              isWatched ? "text-green-400" : "text-blue-400"
+                            )}
+                          >
+                            {Math.round(progressPercent)}%
+                          </span>
                         )}
-                      />
-                      <span className="truncate font-medium">
-                        {lectureMeta.label}
-                      </span>
+                      </div>
+                      {/* Progress bar */}
+                      {lectureMeta.hasVideo && progressPercent > 0 && (
+                        <div className="mt-1.5 ml-[26px] mr-0.5 h-1 rounded-full bg-slate-700/60 overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-300"
+                            style={{
+                              width: `${Math.min(100, Math.round(progressPercent))}%`,
+                              background: isWatched
+                                ? "linear-gradient(90deg, #22c55e, #16a34a)"
+                                : "linear-gradient(90deg, #3b82f6, #2563eb)",
+                            }}
+                          />
+                        </div>
+                      )}
                     </button>
 
                     {/* Resources folder — shown under every lecture */}
@@ -354,7 +335,14 @@ const StudentSidebarContent = () => {
                                 <button
                                   key={pIdx}
                                   type="button"
-                                  onClick={() => openPdfPreview({ url: pdf.url, name: pdf.name })}
+                                  onClick={() =>
+                                    openPdfInMaterialView({
+                                      batchId: activeBatchId,
+                                      classId: cls._id,
+                                      url: pdf.url,
+                                      name: pdf.name,
+                                    })
+                                  }
                                   className="flex items-center gap-1.5 text-[11px] text-slate-500 hover:text-white hover:bg-slate-800 rounded px-1.5 py-1 transition-colors w-full text-left cursor-pointer"
                                 >
                                   <FileText size={11} className="shrink-0 text-red-400" />
@@ -373,7 +361,6 @@ const StudentSidebarContent = () => {
           )}
         </div>
       </div>
-      {pdfPreviewDialog}
     </>
   );
   }
@@ -465,15 +452,21 @@ const StudentSidebarContent = () => {
         )}
       </div>
     </nav>
-
-    {pdfPreviewDialog}
     </>
   );
 };
 
 const StudentSidebar = () => {
+  const location = useLocation();
+  const isMaterialRoute = location.pathname.startsWith("/student/material");
+
   return (
-    <aside className="hidden lg:block w-64 bg-slate-900 text-white p-4 overflow-y-auto">
+    <aside
+      className={cn(
+        "hidden lg:block w-64 bg-slate-900 text-white p-4",
+        isMaterialRoute ? "overflow-hidden" : "overflow-y-auto"
+      )}
+    >
       <StudentSidebarContent />
     </aside>
   );

@@ -46,7 +46,7 @@ const attendanceSchema = new Schema(
     },
     trackingProvider: {
       type: String,
-      enum: ["manual", "gmeet", "zoom"],
+      enum: ["manual", "gmeet", "zoom", "video"],
       default: "manual",
     },
     firstJoinAt: {

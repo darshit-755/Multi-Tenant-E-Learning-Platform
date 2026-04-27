@@ -1,11 +1,9 @@
-import { useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useMemo, useRef, useCallback } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   Play,
   FileText,
-  ChevronDown,
-  ChevronUp,
   Maximize2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,15 +11,17 @@ import { Button } from "@/components/ui/button";
 import { useGetMyClasses } from "@/hooks/student/useGetMyClasses";
 import { useGetMyBatches } from "@/hooks/student/useGetMyBatches";
 import { getClassNotesApi } from "@/services/classNote.api";
+import { useVideoProgress } from "@/contexts/VideoProgressContext";
+
 
 /* ═══════════════════════════════════════════════════════
    VIEW 3: Class selected — show videos + Resource dropdown
    ═══════════════════════════════════════════════════════ */
-const ClassVideoView = ({ cls, batchId }) => {
-  const [selectedPdf, setSelectedPdf] = useState(null);
+const ClassVideoView = ({ cls, selectedPdf, onBackToVideos }) => {
   const pdfPreviewRef = useRef(null);
+  const { updateProgress, getClassProgress, getVideoProgress } = useVideoProgress();
 
-  const [resourcesOpen, setResourcesOpen] = useState(false);
+  const classProgress = getClassProgress(cls?._id);
 
   const { data: classNotesData, isLoading: isNotesLoading } = useQuery({
     queryKey: ["student-material-notes", cls?._id],
@@ -71,27 +71,15 @@ const ClassVideoView = ({ cls, batchId }) => {
     }
   });
 
-  // Collect all PDFs
-  const allPdfs = [];
-  notes.forEach((note) => {
-    if (Array.isArray(note.pdfs) && note.pdfs.length > 0) {
-      note.pdfs.forEach((pdf, pIdx) => {
-        const pdfUrl = typeof pdf === "string" ? pdf : pdf?.url;
-        const pdfName =
-          typeof pdf === "string"
-            ? String(pdf).split("/").pop() || `PDF ${pIdx + 1}`
-            : pdf?.name ||
-            String(pdf?.url || "").split("/").pop() ||
-            `PDF ${pIdx + 1}`;
-        if (pdfUrl) allPdfs.push({ url: pdfUrl, name: pdfName });
-      });
-    }
-  });
-
-  const openPdfPreview = ({ url, name }) => {
-    if (!url) return;
-    setSelectedPdf({ url, name: name || "PDF Preview" });
-  };
+  const handleTimeUpdate = useCallback(
+    (videoKey, event) => {
+      const videoEl = event.target;
+      if (!videoEl.duration || !cls?._id) return;
+      const percent = (videoEl.currentTime / videoEl.duration) * 100;
+      updateProgress(cls._id, videoKey, percent);
+    },
+    [cls?._id, updateProgress]
+  );
 
   const openPdfFullscreen = () => {
     if (!selectedPdf?.url) return;
@@ -106,64 +94,24 @@ const ClassVideoView = ({ cls, batchId }) => {
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-4">
+    <div className="w-full h-full flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-800">
+      <div className="flex items-center justify-between gap-4 flex-shrink-0 pb-1">
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-semibold text-slate-800">
             {cls?.topic || "Class Session"}
           </h1>
+
         </div>
       </div>
 
-      {/* Resources */}
-      <Card>
-        <CardHeader
-          className="cursor-pointer"
-          onClick={() => setResourcesOpen((prev) => !prev)}
-        >
-          <CardTitle className="text-lg flex items-center justify-between mb-0">
-            <span className="flex items-center gap-2">
-              <FileText size={18} className="text-emerald-600" />
-              Resources (PDF)
-            </span>
-            {resourcesOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-          </CardTitle>
-        </CardHeader>
-        {resourcesOpen && (
-          <CardContent className="p-4">
-            {allPdfs.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No PDF resources available for this class.
-              </p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {allPdfs.map((pdf, idx) => (
-                  <Button
-                    key={`${pdf.url}-${idx}`}
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openPdfPreview(pdf)}
-                    className="h-8 gap-1.5 text-xs"
-                  >
-                    <FileText className="h-3.5 w-3.5 text-emerald-600" />
-                    <span className="max-w-[220px] truncate">{pdf.name}</span>
-                  </Button>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        )}
-      </Card>
-
       {/* Main content: show only one at a time */}
       {selectedPdf ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center justify-between mb-0">
+        <Card className="flex-1 flex flex-col min-h-0 py-0 gap-0">
+          <CardHeader className="py-2.5 px-4 flex-shrink-0 border-b">
+            <CardTitle className="text-base flex items-center justify-between mb-0">
               <span className="flex items-center gap-2">
-                <FileText size={18} className="text-emerald-600" />
+                <FileText size={16} className="text-emerald-600" />
                 {selectedPdf.name}
               </span>
               <div className="flex items-center gap-2">
@@ -171,7 +119,7 @@ const ClassVideoView = ({ cls, batchId }) => {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setSelectedPdf(null)}
+                  onClick={onBackToVideos}
                 >
                   Back to Videos
                 </Button>
@@ -188,8 +136,8 @@ const ClassVideoView = ({ cls, batchId }) => {
               </div>
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-4">
-            <div ref={pdfPreviewRef} className="h-[70vh] rounded-md border overflow-hidden bg-slate-100">
+          <CardContent className="p-4 pt-3 flex-1 min-h-0 overflow-y-auto">
+            <div ref={pdfPreviewRef} className="h-full rounded-md border overflow-hidden bg-slate-100">
               <iframe
                 title={selectedPdf.name || "PDF Preview"}
                 src={selectedPdf.url}
@@ -200,14 +148,14 @@ const ClassVideoView = ({ cls, batchId }) => {
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center mb-0">
-              <Play size={18} className="text-blue-600" />
+        <Card className="flex-1 flex flex-col min-h-0 py-0 gap-0">
+          <CardHeader className="py-2.5 px-4 flex-shrink-0 border-b">
+            <CardTitle className="text-base flex items-center gap-1.5 mb-0">
+              <Play size={16} className="text-blue-600" />
               Video Recordings
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-4">
+          <CardContent className="p-4 pt-3 flex-1 min-h-0 overflow-y-auto">
             {isNotesLoading ? (
               <p className="text-sm text-muted-foreground">
                 Loading material...
@@ -220,45 +168,54 @@ const ClassVideoView = ({ cls, batchId }) => {
                 </p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {allVideos.map((video, idx) => (
-                  <div
-                    key={`${video.noteId}-${video.index}`}
-                    className="space-y-2"
-                  >
-                    <p className="text-sm font-medium text-slate-700">
-                      {video.name}
-                    </p>
-                    {video.isLink ? (
-                      <a
-                        href={video.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-2 px-4 py-3 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors"
-                      >
-                        <Play size={18} className="text-blue-600 shrink-0" />
-                        <span className="text-sm font-medium text-blue-900 truncate">
-                          {video.url}
-                        </span>
-                        <span className="text-xs text-blue-700 ml-auto shrink-0">
-                          Open →
-                        </span>
-                      </a>
-                    ) : (
-                      <div className="aspect-video rounded-lg overflow-hidden border bg-black">
-                        <video
-                          className="h-full w-full"
-                          controls
-                          src={video.url}
-                          preload="metadata"
-                        />
-                      </div>
-                    )}
-                    {idx < allVideos.length - 1 && (
-                      <hr className="border-slate-200 mt-2" />
-                    )}
-                  </div>
-                ))}
+              <div className="flex flex-col gap-3 h-full">
+                {allVideos.map((video, idx) => {
+                  const videoKey = `${video.noteId}-${video.index}`;
+                  const isSingleVideo = allVideos.filter(v => !v.isLink).length === 1 && !video.isLink;
+                  return (
+                    <div
+                      key={videoKey}
+                      className={`space-y-1 ${isSingleVideo ? "flex-1 flex flex-col min-h-0" : ""}`}
+                    >
+                      <p className="text-sm font-medium text-slate-700 flex-shrink-0">
+                        {video.name}
+                      </p>
+                      {video.isLink ? (
+                        <div>
+                          <a
+                            href={video.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors"
+                          >
+                            <Play size={16} className="text-blue-600 shrink-0" />
+                            <span className="text-sm font-medium text-blue-900 truncate">
+                              {video.url}
+                            </span>
+                            <span className="text-xs text-blue-700 ml-auto shrink-0">
+                              Open →
+                            </span>
+                          </a>
+                          <p className="text-[11px] text-slate-400 mt-0.5 italic">
+                            Progress tracking not available for external links
+                          </p>
+                        </div>
+                      ) : (
+                        <div className={`${isSingleVideo ? "flex-1 flex flex-col min-h-0" : ""}`}>
+                          <div className={`${isSingleVideo ? "flex-1 min-h-0" : "aspect-video"} rounded-lg overflow-hidden border bg-black`}>
+                            <video
+                              className="h-full w-full"
+                              controls
+                              src={video.url}
+                              preload="metadata"
+                              onTimeUpdate={(e) => handleTimeUpdate(videoKey, e)}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </CardContent>
@@ -273,6 +230,7 @@ const ClassVideoView = ({ cls, batchId }) => {
    ═══════════════════════════════════════════════════════ */
 const StudentMaterialPage = () => {
   const { batchId, classId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     data: classesData,
     isLoading: isClassesLoading,
@@ -297,6 +255,26 @@ const StudentMaterialPage = () => {
     () => classes.find((cls) => cls._id === classId),
     [classes, classId]
   );
+
+  const selectedPdf = useMemo(() => {
+    if (searchParams.get("view") !== "pdf") return null;
+
+    const url = searchParams.get("pdf") || "";
+    if (!url) return null;
+
+    return {
+      url,
+      name: searchParams.get("name") || "PDF Preview",
+    };
+  }, [searchParams]);
+
+  const showVideosView = () => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("view");
+    nextParams.delete("pdf");
+    nextParams.delete("name");
+    setSearchParams(nextParams);
+  };
 
   // No auto-redirect — user picks classes from sidebar tree
 
@@ -328,7 +306,8 @@ const StudentMaterialPage = () => {
     return (
       <ClassVideoView
         cls={activeClass}
-        batchId={batchId}
+        selectedPdf={selectedPdf}
+        onBackToVideos={showVideosView}
       />
     );
   }

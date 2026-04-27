@@ -29,10 +29,11 @@ export const updateClassNote = async (req, res) => {
     if (typeof req.body.content === "string") note.content = req.body.content.trim();
     if (typeof req.body.contentType === "string") note.contentType = req.body.contentType;
     if (typeof req.body.lectureLink === "string") note.lectureLink = req.body.lectureLink.trim();
+    const pdfFileName = String(req.body?.pdfFileName || "").trim();
 
     // Handle file replacements
     if (req.files && req.files.notePdfs) {
-      note.pdfs = buildUploadedFileObjects(req, req.files.notePdfs, "notes");
+      note.pdfs = buildUploadedFileObjects(req, req.files.notePdfs, "notes", pdfFileName);
     }
     if (req.files && req.files.lectureVideos) {
       // Get class topic for video naming
@@ -71,15 +72,25 @@ const formatClassDate = (rawDate) => {
   });
 };
 
-const buildUploadedFileObjects = (req, files = [], fallbackFolder = "misc") => {
+const buildUploadedFileObjects = (
+  req,
+  files = [],
+  fallbackFolder = "misc",
+  customDisplayName = ""
+) => {
   if (!Array.isArray(files) || files.length === 0) return [];
   const baseUrl = `${req.protocol}://${req.get("host")}`;
+  const displayName = String(customDisplayName || "").trim();
 
-  return files.map((file) => {
+  return files.map((file, index) => {
     const folder = file.destination?.split(/[\\/]/).pop() || fallbackFolder;
+    const resolvedName = displayName
+      ? `${displayName}${files.length > 1 ? ` (Part ${index + 1})` : ""}`
+      : file.originalname || file.filename;
+
     return {
       url: `${baseUrl}/uploads/${folder}/${file.filename}`,
-      name: file.originalname || file.filename,
+      name: resolvedName,
     };
   });
 };
@@ -262,13 +273,14 @@ export const addClassNote = async (req, res) => {
     const title = String(req.body?.title || "").trim();
     const content = String(req.body?.content || "").trim();
     const lectureLink = String(req.body?.lectureLink || "").trim();
+    const pdfFileName = String(req.body?.pdfFileName || "").trim();
 
     const notePdfFiles = Array.isArray(req.files?.notePdfs) ? req.files.notePdfs : [];
     const lectureVideoFiles = Array.isArray(req.files?.lectureVideos)
       ? req.files.lectureVideos
       : [];
 
-    const pdfs = buildUploadedFileObjects(req, notePdfFiles, "notes");
+    const pdfs = buildUploadedFileObjects(req, notePdfFiles, "notes", pdfFileName);
     
     // Get class topic for video naming
     const classDoc = await Class.findById(classId).select("topic");

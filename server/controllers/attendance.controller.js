@@ -471,3 +471,92 @@ export const updateAttendance = async (req, res) => {
     });
   }
 };
+
+// Mark attendance when student watches ≥75% of a class video
+export const markVideoAttendance = async (req, res) => {
+  try {
+    const { classId } = req.body;
+    const tenantId = req.user.tenantId;
+    const userId = req.user.id || req.user._id;
+
+    if (!classId) {
+      return res.status(400).json({ message: "classId is required" });
+    }
+
+    // Find student profile
+    const student = await Student.findOne({ userId, tenantId }).select("_id");
+    if (!student) {
+      return res.status(404).json({ message: "Student profile not found" });
+    }
+
+    // Verify class exists
+    const classRecord = await Class.findOne({ _id: classId, tenantId });
+    if (!classRecord) {
+      return res.status(404).json({ message: "Class not found" });
+    }
+
+    // Verify student belongs to the batch
+    const batch = await Batch.findById(classRecord.batchId).select("studentIds");
+    if (!batch) {
+      return res.status(404).json({ message: "Batch not found" });
+    }
+
+    const studentInBatch = batch.studentIds.some(
+      (id) => String(id) === String(student._id)
+    );
+    if (!studentInBatch) {
+      return res.status(403).json({ message: "You are not enrolled in this class" });
+    }
+
+    // Check if already marked present
+    const existing = await Attendance.findOne({
+      classId,
+      studentId: student._id,
+      tenantId,
+    });
+
+    if (existing && existing.present) {
+      return res.status(200).json({
+        message: "Attendance already marked as present",
+        alreadyPresent: true,
+        attendance: {
+          _id: existing._id,
+          classId: existing.classId,
+          present: existing.present,
+        },
+      });
+    }
+
+    // Upsert attendance as present
+    const attendance = await Attendance.findOneAndUpdate(
+      { classId, studentId: student._id, tenantId },
+      {
+        tenantId,
+        classId,
+        studentId: student._id,
+        tutorId: classRecord.teacherId,
+        present: true,
+        presenceSource: "system",
+        trackingProvider: "video",
+        notes: "Auto-marked: 75% video watched",
+        markedAt: new Date(),
+      },
+      { upsert: true, new: true, runValidators: true }
+    );
+
+    return res.status(200).json({
+      message: "Attendance marked as present via video progress",
+      alreadyPresent: false,
+      attendance: {
+        _id: attendance._id,
+        classId: attendance.classId,
+        present: attendance.present,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error marking video attendance",
+      error: error.message,
+    });
+  }
+};
