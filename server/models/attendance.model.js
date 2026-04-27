@@ -31,6 +31,11 @@ const attendanceSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    isProgressOnly: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
     markedAt: {
       type: Date,
       default: Date.now,
@@ -48,6 +53,16 @@ const attendanceSchema = new Schema(
       type: String,
       enum: ["manual", "gmeet", "zoom", "video"],
       default: "manual",
+    },
+    videoProgress: {
+      type: Schema.Types.Mixed,
+      default: {},
+    },
+    videoMaxProgress: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
     },
     firstJoinAt: {
       type: Date,

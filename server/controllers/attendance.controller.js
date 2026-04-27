@@ -15,7 +15,7 @@ const buildStudentAttendancePayload = async (studentId, tenantId) => {
     return { notFound: true };
   }
 
-  const attendance = await Attendance.find({ studentId, tenantId })
+  const attendance = await Attendance.find({ studentId, tenantId, isProgressOnly: { $ne: true } })
     .populate({
       path: "classId",
       select: "date startTime duration subject topic status",
@@ -55,6 +55,7 @@ const buildStudentAttendancePayload = async (studentId, tenantId) => {
       lastJoinAt: record.lastJoinAt,
       lastLeaveAt: record.lastLeaveAt,
       totalDurationMinutes: record.totalDurationMinutes || 0,
+      videoMaxProgress: record.videoMaxProgress || 0,
     }));
 
   return {
@@ -189,7 +190,7 @@ export const getAttendanceByClass = async (req, res) => {
     }
 
     // Get attendance records
-    const attendance = await Attendance.find({ classId, tenantId })
+    const attendance = await Attendance.find({ classId, tenantId, isProgressOnly: { $ne: true } })
       .populate({
         path: "studentId",
         populate: { path: "userId", select: "name email" },
@@ -229,6 +230,7 @@ export const getAttendanceByClass = async (req, res) => {
         totalDurationMinutes: attendanceRecord
           ? attendanceRecord.totalDurationMinutes || 0
           : 0,
+        videoMaxProgress: attendanceRecord ? attendanceRecord.videoMaxProgress || 0 : 0,
         _id: attendanceRecord ? attendanceRecord._id : null,
       };
     });
@@ -401,6 +403,7 @@ export const getAttendanceSummary = async (req, res) => {
       studentId: { $in: studentIds },
       classId: { $in: classIds },
       tenantId,
+      isProgressOnly: { $ne: true },
     });
 
     // Build summary
@@ -536,8 +539,11 @@ export const markVideoAttendance = async (req, res) => {
         studentId: student._id,
         tutorId: classRecord.teacherId,
         present: true,
+        isProgressOnly: false,
         presenceSource: "system",
         trackingProvider: "video",
+        videoProgress: existing?.videoProgress || {},
+        videoMaxProgress: existing?.videoMaxProgress || 0,
         notes: "Auto-marked: 75% video watched",
         markedAt: new Date(),
       },
@@ -556,6 +562,139 @@ export const markVideoAttendance = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       message: "Error marking video attendance",
+      error: error.message,
+    });
+  }
+};
+
+// Fetch video progress for the logged in student
+export const getMyVideoProgress = async (req, res) => {
+  try {
+    const tenantId = req.user.tenantId;
+    const userId = req.user.id || req.user._id;
+
+    const student = await Student.findOne({ userId, tenantId }).select("_id");
+    if (!student) {
+      return res.status(404).json({ message: "Student profile not found" });
+    }
+
+    const progress = await Attendance.find({
+      studentId: student._id,
+      tenantId,
+      $or: [
+        { videoMaxProgress: { $gt: 0 } },
+        { videoProgress: { $exists: true, $ne: {} } },
+      ],
+    })
+      .select("classId videoProgress videoMaxProgress present markedAt updatedAt trackingProvider isProgressOnly")
+      .sort({ updatedAt: -1 });
+
+    return res.status(200).json({
+      student: student._id,
+      progress: progress.map((record) => ({
+        _id: record._id,
+        classId: String(record.classId),
+        videos: record.videoProgress || {},
+        maxProgress: record.videoMaxProgress || 0,
+        attendanceMarked: Boolean(record.present),
+        markedAt: record.markedAt,
+        updatedAt: record.updatedAt,
+      })),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error fetching video progress",
+      error: error.message,
+    });
+  }
+};
+
+// Save per-video progress for the logged in student
+export const upsertMyVideoProgress = async (req, res) => {
+  try {
+    const { classId, videoKey, percent } = req.body;
+    const tenantId = req.user.tenantId;
+    const userId = req.user.id || req.user._id;
+
+    if (!classId || !videoKey || typeof percent !== "number") {
+      return res.status(400).json({
+        message: "classId, videoKey, and percent are required",
+      });
+    }
+
+    const student = await Student.findOne({ userId, tenantId }).select("_id");
+    if (!student) {
+      return res.status(404).json({ message: "Student profile not found" });
+    }
+
+    const classRecord = await Class.findOne({ _id: classId, tenantId }).select("_id batchId teacherId");
+    if (!classRecord) {
+      return res.status(404).json({ message: "Class not found" });
+    }
+
+    const batch = await Batch.findById(classRecord.batchId).select("studentIds");
+    if (!batch) {
+      return res.status(404).json({ message: "Batch not found" });
+    }
+
+    const studentInBatch = batch.studentIds.some((id) => String(id) === String(student._id));
+    if (!studentInBatch) {
+      return res.status(403).json({ message: "You are not enrolled in this class" });
+    }
+
+    const existing = await Attendance.findOne({
+      classId,
+      studentId: student._id,
+      tenantId,
+      trackingProvider: "video",
+    });
+
+    const existingVideos = existing?.videoProgress && typeof existing.videoProgress === "object"
+      ? { ...existing.videoProgress }
+      : {};
+    const currentVideoPercent = Number(existingVideos[videoKey] || 0);
+    const nextPercent = Math.max(0, Math.min(100, Number(percent) || 0));
+
+    if (nextPercent > currentVideoPercent) {
+      existingVideos[videoKey] = nextPercent;
+    }
+
+    const maxProgress = Math.max(0, ...Object.values(existingVideos).map((value) => Number(value) || 0));
+
+    const attendance = await Attendance.findOneAndUpdate(
+      { classId, studentId: student._id, tenantId, trackingProvider: "video" },
+      {
+        tenantId,
+        classId,
+        studentId: student._id,
+        tutorId: classRecord.teacherId,
+        present: existing?.present || false,
+        isProgressOnly: !existing?.present,
+        presenceSource: existing?.present ? existing.presenceSource || "system" : "system",
+        trackingProvider: existing?.trackingProvider || "video",
+        videoProgress: existingVideos,
+        videoMaxProgress: maxProgress,
+        isProgressOnly: existing?.present ? false : existing?.isProgressOnly ?? !existing,
+        markedAt: existing?.markedAt || new Date(),
+      },
+        { upsert: true, new: true, runValidators: true }
+    );
+
+    return res.status(200).json({
+      message: "Video progress saved",
+      progress: {
+        _id: attendance._id,
+        classId: String(attendance.classId),
+        videos: attendance.videoProgress || {},
+        maxProgress: attendance.videoMaxProgress || 0,
+        attendanceMarked: Boolean(attendance.present),
+        markedAt: attendance.markedAt,
+        updatedAt: attendance.updatedAt,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error saving video progress",
       error: error.message,
     });
   }

@@ -87,3 +87,25 @@ export const markVideoAttendance = async (classId) => {
     throw error.response?.data || error.message;
   }
 };
+
+export const getMyVideoProgress = async () => {
+  try {
+    const response = await API.get("/attendance/video-progress/me");
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+export const saveMyVideoProgress = async ({ classId, videoKey, percent }) => {
+  try {
+    const response = await API.post("/attendance/video-progress", {
+      classId,
+      videoKey,
+      percent,
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
