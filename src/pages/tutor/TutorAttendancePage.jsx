@@ -327,13 +327,24 @@ export default function TutorAttendancePage() {
                         </span>
                       </TableCell>
                       <TableCell>
-                        <Button
-                          size="sm"
-                          className="bg-blue-600 hover:bg-blue-700 text-white"
-                          onClick={() => navigate(`/tutor/take-attendance/${cls._id}`)}
-                        >
-                          {cls.hasAttendance ? "Update Attendance" : "Take Attendance"}
-                        </Button>
+                        {isCompleted ? (
+                          <Button
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                            onClick={() => navigate(`/tutor/take-attendance/${cls._id}`)}
+                          >
+                            {cls.hasAttendance ? "Update Attendance" : "Take Attendance"}
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled
+                            title="Attendance can only be marked after the class is completed"
+                          >
+                            {isCancelled ? "Cancelled" : "Not Completed"}
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   );

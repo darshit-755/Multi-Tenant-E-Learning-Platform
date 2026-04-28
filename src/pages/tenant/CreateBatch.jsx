@@ -136,7 +136,7 @@ export default function CreateBatch() {
     const tutorId = getTutorId(tutor);
     const isCurrentTeacher = isEditPage && tutorId === selectedTeacherId;
     if (tutor.status !== "active" && !isCurrentTeacher) return false;
-    if (!selectedSubject) return false;
+    if (!selectedSubject) return isCurrentTeacher;
 
     const tutorSubjects = tutor.subjects || [];
     const selectedSubjectName = selectedSubject.name?.trim().toLowerCase();
@@ -150,7 +150,7 @@ export default function CreateBatch() {
       tutor.subjectId?._id === selectedSubjectId ||
       tutor.subjectId === selectedSubjectId;
 
-    return matchesBySubjectName || matchesBySubjectId;
+    return matchesBySubjectName || matchesBySubjectId || isCurrentTeacher;
   });
   const subjectsForSelect = isEditPage
     ? subjects
@@ -236,7 +236,7 @@ export default function CreateBatch() {
   };
 
   useEffect(() => {
-    if (!isEditPage || !batches.length) return;
+    if (!isEditPage || !batches.length || !subjects.length || !tutors.length) return;
     const batch = batches.find((item) => item._id === batchId);
     if (!batch) return;
 
@@ -256,7 +256,7 @@ export default function CreateBatch() {
     setValue("subjectId", prefilledSubjectId, { shouldValidate: true });
     setValue("teacherId", prefilledTeacherId, { shouldValidate: true });
     setValue("studentIds", prefilledStudentIds, { shouldValidate: false });
-  }, [isEditPage, batches, batchId, setValue]);
+  }, [isEditPage, batches, batchId, subjects, tutors, setValue]);
 
   const handleToggleStatus = async (batch) => {
     const nextStatus = batch.status === "completed" ? "active" : "completed";
@@ -298,6 +298,7 @@ export default function CreateBatch() {
             <div>
               <Label>Subject</Label>
               <Select
+                key={`subject-${editingBatch?._id || "new"}`}
                 value={selectedSubjectId}
                 onValueChange={(value) => {
                   setSelectedSubjectId(value);
@@ -309,11 +310,17 @@ export default function CreateBatch() {
                   <SelectValue placeholder="Select subject" />
                 </SelectTrigger>
                 <SelectContent>
-                  {subjectsForSelect.map((subject) => (
+                  {subjectsForSelect.length > 0 ? (
+                    subjectsForSelect.map((subject) => (
                       <SelectItem key={subject._id} value={subject._id}>
                         {subject.name}
                       </SelectItem>
-                    ))}
+                    ))
+                  ) : (
+                    <div className="px-3 py-2 text-sm text-muted-foreground">
+                      No subjects available. Add a subject first.
+                    </div>
+                  )}
                 </SelectContent>
               </Select>
               <input
@@ -330,6 +337,7 @@ export default function CreateBatch() {
             <div>
               <Label>Teacher</Label>
               <Select
+                key={`teacher-${editingBatch?._id || "new"}-${selectedSubjectId}`}
                 value={selectedTeacherId}
                 onValueChange={(value) => {
                   setSelectedTeacherId(value);

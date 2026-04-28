@@ -94,20 +94,40 @@ const TakeAttendance = () => {
               {classData.startTime} ({classData.duration} mins)
             </p>
           </div>
-          <div className="rounded-md bg-slate-50 p-3 sm:col-span-2 lg:col-span-2">
+          <div className="rounded-md bg-slate-50 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Status</p>
+            <p className={`mt-1 text-sm font-medium capitalize ${
+              classData.status === 'completed' ? 'text-emerald-700' :
+              classData.status === 'cancelled' ? 'text-rose-700' :
+              'text-amber-700'
+            }`}>{classData.status}</p>
+          </div>
+          <div className="rounded-md bg-slate-50 p-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Topic</p>
             <p className="mt-1 text-sm font-medium text-slate-900">{classData.topic || 'N/A'}</p>
           </div>
         </div>
       )}
 
-      <AttendanceForm
-        classId={classId}
-        students={students}
-        initialAttendance={existingAttendance}
-        isUpdateMode={isUpdateMode}
-        onSubmit={handleAttendanceSubmit}
-      />
+      {classData && classData.status !== 'completed' ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-center space-y-2">
+          <p className="text-sm font-semibold text-amber-800">
+            Attendance can only be marked after the class is completed.
+          </p>
+          <p className="text-xs text-amber-600">
+            Current status: <span className="font-medium capitalize">{classData.status}</span>. 
+            Please mark the class as completed first.
+          </p>
+        </div>
+      ) : (
+        <AttendanceForm
+          classId={classId}
+          students={students}
+          initialAttendance={existingAttendance}
+          isUpdateMode={isUpdateMode}
+          onSubmit={handleAttendanceSubmit}
+        />
+      )}
     </div>
   );
 };

@@ -30,6 +30,31 @@ export const getPendingTenants = async (req, res) => {
 };
 
 /**
+ * Get new pending tenants (never reviewed by admin)
+ */
+export const getNewPendingTenants = async (req, res) => {
+  try {
+    const tenants = await Tenant.find({
+      status: "inactive",
+      statusChangedOnce: { $ne: true },
+    })
+      .populate("ownerUserId", "name email")
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      message: "New pending tenants fetched successfully",
+      tenants,
+      count: tenants.length,
+    });
+  } catch (error) {
+    console.error("Get New Pending Tenants Error:", error);
+    return res.status(500).json({
+      message: "Server Error",
+    });
+  }
+};
+
+/**
  * Get all tenants (Admin Dashboard with pagination)
  */
 export const getAllTenants = async (req, res) => {
@@ -89,6 +114,7 @@ export const approveTenant = async (req, res) => {
     }
 
     tenant.status = "active";
+    tenant.statusChangedOnce = true;
     await tenant.save();
 
     await User.findByIdAndUpdate(tenant.ownerUserId._id, { status: "active" });
@@ -130,6 +156,7 @@ export const blockTenant = async (req, res) => {
     }
 
     tenant.status = "blocked";
+    tenant.statusChangedOnce = true;
     await tenant.save();
 
     await User.findByIdAndUpdate(tenant.ownerUserId._id, { status: "blocked" });
@@ -177,6 +204,7 @@ export const makeTenantInactive = async (req, res) => {
     }
 
     tenant.status = "inactive";
+    tenant.statusChangedOnce = true;
     await tenant.save();
 
     await User.findByIdAndUpdate(tenant.ownerUserId._id, {

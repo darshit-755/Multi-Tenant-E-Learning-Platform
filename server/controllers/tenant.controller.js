@@ -172,7 +172,7 @@ export const deleteTutor = async (req, res) => {
 export const updateTutor = async (req, res) => {
   try {
     const { tutorId } = req.params;
-    const { name, email, subjects, experienceYears, phone, status } = req.body;
+    const { name, email, password, subjects, experienceYears, phone, status } = req.body;
     const tenantId = req.user.tenantId;
 
     const tutorProfile = await Tutor.findOne({
@@ -226,6 +226,15 @@ export const updateTutor = async (req, res) => {
     }
 
     if (name !== undefined) tutorUser.name = name;
+
+    // Handle optional password change
+    if (password !== undefined && password !== "") {
+      if (password.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters" });
+      }
+      tutorUser.passwordHash = await bcrypt.hash(password, 10);
+    }
+
     await tutorUser.save();
 
     if (normalizedSubjects) tutorProfile.subjects = normalizedSubjects;
@@ -419,6 +428,7 @@ export const updateStudent = async (req, res) => {
     const {
       name,
       email,
+      password,
       rollNumber,
       classLevel,
       board,
@@ -454,6 +464,15 @@ export const updateStudent = async (req, res) => {
     }
 
     if (name !== undefined) studentUser.name = name;
+
+    // Handle optional password change
+    if (password !== undefined && password !== "") {
+      if (password.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters" });
+      }
+      studentUser.passwordHash = await bcrypt.hash(password, 10);
+    }
+
     await studentUser.save();
 
     if (rollNumber !== undefined) studentProfile.rollNumber = rollNumber;

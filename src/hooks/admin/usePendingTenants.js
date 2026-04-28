@@ -27,6 +27,7 @@ export const usePendingTenants = (currentPage) => {
       toast.success("Center approved successfully");
       queryClient.invalidateQueries({ queryKey: ["all-tenants"] });
       queryClient.invalidateQueries({ queryKey: ["all-tenants", "inactive-count"] });
+      queryClient.invalidateQueries({ queryKey: ["new-pending-tenants"] });
     },
     onError: (error) => {
       toast.error(error.response?.data?.message || "Failed to approve center");
@@ -38,6 +39,7 @@ export const usePendingTenants = (currentPage) => {
       toast.success("Center marked as inactive successfully");
       queryClient.invalidateQueries({ queryKey: ["all-tenants"] });
       queryClient.invalidateQueries({ queryKey: ["all-tenants", "inactive-count"] });
+      queryClient.invalidateQueries({ queryKey: ["new-pending-tenants"] });
     },
     onError: (error) => {
       toast.error(error.response?.data?.message || "Failed to mark center as inactive");
@@ -51,6 +53,7 @@ export const usePendingTenants = (currentPage) => {
       toast.success("Center suspended successfully");
       queryClient.invalidateQueries({ queryKey: ["all-tenants"] });
       queryClient.invalidateQueries({ queryKey: ["all-tenants", "inactive-count"] });
+      queryClient.invalidateQueries({ queryKey: ["new-pending-tenants"] });
     },
     onError: (error) => {
       toast.error(error.response?.data?.message || "Failed to suspend center");
@@ -63,6 +66,7 @@ export const usePendingTenants = (currentPage) => {
       toast.success("Center deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["all-tenants"] });
       queryClient.invalidateQueries({ queryKey: ["all-tenants", "inactive-count"] });
+      queryClient.invalidateQueries({ queryKey: ["new-pending-tenants"] });
     },
     onError: (error) => {
       toast.error(error.response?.data?.message || "Failed to delete center");

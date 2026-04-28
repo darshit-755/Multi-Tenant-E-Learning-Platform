@@ -309,7 +309,7 @@ export default function ManageClasses() {
   };
 
   useEffect(() => {
-    if (!isEditPage || !classes.length) return;
+    if (!isEditPage || !classes.length || !subjects.length || !batches.length || !tutors.length) return;
     const cls = classes.find((item) => item._id === classId);
     if (!cls) return;
 
@@ -328,7 +328,7 @@ export default function ManageClasses() {
       reminderTime: String(cls.reminderTime ?? 0),
       videoLink: cls.videoLink || "",
     });
-  }, [isEditPage, classes, classId, reset]);
+  }, [isEditPage, classes, classId, subjects, batches, tutors, reset]);
 
   const uniqueSubjects = [
     ...new Set(classes.map((cls) => cls.subjectId?.name).filter(Boolean)),
@@ -375,6 +375,7 @@ export default function ManageClasses() {
             subjects={subjects}
             batches={batches}
             isEditMode={isEditMode}
+            editingClass={editingClass}
             isCreating={isCreating}
             isUpdating={isUpdating}
             syncTeacherFromBatch={syncTeacherFromBatch}

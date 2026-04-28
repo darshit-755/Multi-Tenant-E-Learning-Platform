@@ -63,20 +63,20 @@ export default function AddTutor() {
   });
   const isEditMode = Boolean(editingTutor);
 
- const {
-  register,
-  handleSubmit,
-  reset,
-  setValue,
-  getValues,
-  watch,
-  control,
-  formState: { errors },
-} = useForm({
-  defaultValues: {
-    subjectId: "",
-  },
-});
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    getValues,
+    watch,
+    control,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      subjectId: "",
+    },
+  });
   const statusValue = watch("status");
 
   const handleDelete = (id) => {
@@ -159,40 +159,40 @@ export default function AddTutor() {
   ), [subjects]);
   const subjectsForSelect = isEditMode ? subjects : activeSubjects;
 
-useEffect(() => {
-  if (!isEditPage) return;
+  useEffect(() => {
+    if (!isEditPage) return;
 
-  // wait for BOTH data
-  if (!tutors?.tutors?.length || !subjects.length) return;
+    // wait for BOTH data
+    if (!tutors?.tutors?.length || !subjects.length) return;
 
-  const tutor = tutors.tutors.find((item) => item._id === tutorId);
-  if (!tutor) return;
+    const tutor = tutors.tutors.find((item) => item._id === tutorId);
+    if (!tutor) return;
 
-  setEditingTutor(tutor);
-   const tutorPrimarySubjectName = tutor.subjects?.[0] || "";
+    setEditingTutor(tutor);
+    const tutorPrimarySubjectName = tutor.subjects?.[0] || "";
 
-  const matchedSubject = subjects.find((subject) =>
-    subject.name?.trim().toLowerCase() ===
-    String(tutorPrimarySubjectName).trim().toLowerCase()
-  );
+    const matchedSubject = subjects.find((subject) =>
+      subject.name?.trim().toLowerCase() ===
+      String(tutorPrimarySubjectName).trim().toLowerCase()
+    );
 
-  const subjectId = matchedSubject?._id || "";
+    const subjectId = matchedSubject?._id || "";
 
-  reset({
-  name: tutor.name || "",
-  email: tutor.email || "",
-  password: "",
-  experienceYears: tutor.experienceYears ?? 0,
-  phone: normalizeIndianMobileNumber(tutor.phone || ""),
-  status: tutor.status || "active",
-  subjectId: subjectId,
-});
+    reset({
+      name: tutor.name || "",
+      email: tutor.email || "",
+      password: "",
+      experienceYears: tutor.experienceYears ?? 0,
+      phone: normalizeIndianMobileNumber(tutor.phone || ""),
+      status: tutor.status || "active",
+      subjectId: subjectId,
+    });
 
- 
 
-  
 
-}, [isEditPage, tutors, subjects, tutorId, setValue]);
+
+
+  }, [isEditPage, tutors, subjects, tutorId, setValue]);
 
   const allTutors = tutors?.tutors || [];
   const filteredTutors = allTutors.filter((tutor) => {
@@ -222,380 +222,378 @@ useEffect(() => {
       </div>
 
       {!isViewPage && (
-      <Card className="bg-white border border-slate-200 shadow-sm">
-        <CardContent className="p-6">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
-            {/* Name */}
-            <div>
-              <Label>Name</Label>
-              <Input
-                placeholder="Full name"
-                className="mt-1"
-                {...register("name", { required: "Name is required" })}
-              />
-              {errors.name && (
-                <p className="text-xs text-red-500 mt-1">
-                  {errors.name.message}
-                </p>
-              )}
-            </div>
-
-            {/* Email */}
-            <div>
-              <Label>Email</Label>
-              <Input
-                type="email"
-                placeholder="Email address"
-                className="mt-1"
-                {...register("email", { required: "Email is required" })}
-              />
-              {errors.email && (
-                <p className="text-xs text-red-500 mt-1">
-                  {errors.email.message}
-                </p>
-              )}
-            </div>
-
-            {/* Password */}
-            <div>
-              <Label>Password</Label>
-              <div className="relative mt-1">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Minimum 6 characters"
-                  className="pr-10"
-                  {...register("password", {
-                    required: isEditMode ? false : "Password is required",
-                    validate: (value) =>
-                      !value || value.length >= 6 || "Minimum 6 characters",
-                  })}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 hover:text-slate-700"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="text-xs text-red-500 mt-1">
-                  {errors.password.message}
-                </p>
-              )}
-            </div>
-
-            {!isEditMode && (
+        <Card className="bg-white border border-slate-200 shadow-sm">
+          <CardContent className="p-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
+              {/* Name */}
               <div>
-                <Label>Confirm Password</Label>
+                <Label>Name</Label>
+                <Input
+                  placeholder="Full name"
+                  className="mt-1"
+                  {...register("name", { required: "Name is required" })}
+                />
+                {errors.name && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.name.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Email */}
+              <div>
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  placeholder="Email address"
+                  className="mt-1"
+                  {...register("email", { required: "Email is required" })}
+                />
+                {errors.email && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.email.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Password */}
+              <div>
+                <Label>{isEditMode ? "Password (Optional)" : "Password"}</Label>
                 <div className="relative mt-1">
                   <Input
-                    type={showConfirmPassword ? "text" : "password"}
-                    placeholder="Re-enter password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder={isEditMode ? "Leave blank to keep current password" : "Minimum 6 characters"}
                     className="pr-10"
-                    {...register("confirmPassword", {
-                      required: "Confirm password is required",
+                    {...register("password", {
+                      required: isEditMode ? false : "Password is required",
                       validate: (value) =>
-                        value === getValues("password") || "Passwords do not match",
+                        !value || value.length >= 6 || "Minimum 6 characters",
                     })}
                   />
                   <button
                     type="button"
-                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    onClick={() => setShowPassword((prev) => !prev)}
                     className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 hover:text-slate-700"
-                    aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
-                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
-                {errors.confirmPassword && (
+                {errors.password && (
                   <p className="text-xs text-red-500 mt-1">
-                    {errors.confirmPassword.message}
+                    {errors.password.message}
                   </p>
                 )}
               </div>
-            )}
 
-            {/* Subjects */}
-            <div>
-              <Label>Subjects</Label>
-              <Controller
-                name="subjectId"
-                control={control}
-                rules={{ required: "Subject is required" }}
-                render={({ field }) => (
+              {!isEditMode && (
+                <div>
+                  <Label>Confirm Password</Label>
+                  <div className="relative mt-1">
+                    <Input
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="Re-enter password"
+                      className="pr-10"
+                      {...register("confirmPassword", {
+                        required: "Confirm password is required",
+                        validate: (value) =>
+                          value === getValues("password") || "Passwords do not match",
+                      })}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword((prev) => !prev)}
+                      className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 hover:text-slate-700"
+                      aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                    >
+                      {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                  {errors.confirmPassword && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {errors.confirmPassword.message}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Subjects */}
+              <div>
+                <Label>Subjects</Label>
+                <Controller
+                  key={editingTutor?._id || "new"}
+                  name="subjectId"
+                  control={control}
+                  rules={{ required: "Subject is required" }}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value}
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                      }}
+                    >
+                      <SelectTrigger className="mt-1 w-full">
+                        <SelectValue placeholder="Select subject" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {subjectsForSelect.length > 0 ? (
+                          subjectsForSelect.map((subject) => (
+                            <SelectItem key={subject._id} value={subject._id}>
+                              {subject.name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="__no_subject" disabled>
+                            Add subjects first to assign here
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.subjectId && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.subjectId.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Experience */}
+              <div>
+                <Label>Experience (Years)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  className="mt-1"
+                  {...register("experienceYears", {
+                    required: "Experience is required",
+                    min: {
+                      value: 0,
+                      message: "Experience must be 0 or greater",
+                    },
+                  })}
+                />
+                {errors.experienceYears && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.experienceYears.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Phone */}
+              <div>
+                <Label>Phone</Label>
+                <Input
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  autoComplete="tel-national"
+                  placeholder="Phone number"
+                  className="mt-1"
+                  {...register("phone", {
+                    required: "Phone is required",
+                    setValueAs: normalizeIndianMobileNumber,
+                    validate: validateIndianMobileNumber,
+                  })}
+                  onInput={handleIndianMobileInput}
+                />
+                {errors.phone && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.phone.message}
+                  </p>
+                )}
+              </div>
+
+              {isEditMode && (
+                <div>
+                  <Label>Status</Label>
                   <Select
-                    value={field.value || ""}
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                     
-                    }}
+                    value={statusValue || "active"}
+                    onValueChange={(value) =>
+                      setValue("status", value, { shouldValidate: true })
+                    }
                   >
                     <SelectTrigger className="mt-1 w-full">
-                      <SelectValue placeholder={subjectsForSelect.find(s => s._id === field.value)?.name
-    || "Select subject"} />
+                      <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      {subjectsForSelect.length > 0 ? (
-                        subjectsForSelect.map((subject) => (
-                          <SelectItem key={subject._id} value={subject._id}>
-                            {subject.name}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value="__no_subject" disabled>
-                          Add subjects first to assign here
-                        </SelectItem>
-                      )}
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+              )}
+
+              <div className="flex flex-col md:flex-row justify-center md:justify-end gap-2 pt-4 border-t">
+                {isEditMode && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCancelEdit}
+                    className="w-full md:w-35"
+                  >
+                    Cancel
+                  </Button>
                 )}
-              />
-              {errors.subjectId && (
-                <p className="text-xs text-red-500 mt-1">
-                  {errors.subjectId.message}
-                </p>
-              )}
-            </div>
-
-            {/* Experience */}
-            <div>
-              <Label>Experience (Years)</Label>
-              <Input
-                type="number"
-                min="0"
-                placeholder="0"
-                className="mt-1"
-                {...register("experienceYears", {
-                  required: "Experience is required",
-                  min: {
-                    value: 0,
-                    message: "Experience must be 0 or greater",
-                  },
-                })}
-              />
-              {errors.experienceYears && (
-                <p className="text-xs text-red-500 mt-1">
-                  {errors.experienceYears.message}
-                </p>
-              )}
-            </div>
-
-            {/* Phone */}
-            <div>
-              <Label>Phone</Label>
-              <Input
-                type="tel"
-                inputMode="numeric"
-                maxLength={10}
-                autoComplete="tel-national"
-                placeholder="Phone number"
-                className="mt-1"
-                {...register("phone", {
-                  required: "Phone is required",
-                  setValueAs: normalizeIndianMobileNumber,
-                  validate: validateIndianMobileNumber,
-                })}
-                onInput={handleIndianMobileInput}
-              />
-              {errors.phone && (
-                <p className="text-xs text-red-500 mt-1">
-                  {errors.phone.message}
-                </p>
-              )}
-            </div>
-
-            {isEditMode && (
-              <div>
-                <Label>Status</Label>
-                <Select
-                  value={statusValue || "active"}
-                  onValueChange={(value) =>
-                    setValue("status", value, { shouldValidate: true })
-                  }
-                >
-                  <SelectTrigger className="mt-1 w-full">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <div className="flex flex-col md:flex-row justify-center md:justify-end gap-2 pt-4 border-t">
-              {isEditMode && (
                 <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCancelEdit}
-                  className="w-full md:w-35"
+                  type="submit"
+                  disabled={isCreating || isUpdating}
+                  className="bg-indigo-600 w-full md:w-35 hover:bg-indigo-700 text-white"
                 >
-                  Cancel
+                  {isCreating || isUpdating
+                    ? isEditMode
+                      ? "Updating..."
+                      : "Creating..."
+                    : isEditMode
+                      ? "Update Tutor"
+                      : "Create Tutor"}
                 </Button>
-              )}
-              <Button
-                type="submit"
-                disabled={isCreating || isUpdating}
-                className="bg-indigo-600 w-full md:w-35 hover:bg-indigo-700 text-white"
-              >
-                {isCreating || isUpdating
-                  ? isEditMode
-                    ? "Updating..."
-                    : "Creating..."
-                  : isEditMode
-                    ? "Update Tutor"
-                    : "Create Tutor"}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       )}
 
       {isViewPage && (
-      <Card>
-        <CardContent className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Tutors</h2>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-4">
-            <Input
-              placeholder="Filter by name"
-              value={filters.name}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, name: e.target.value }))
-              }
-            />
-            <Input
-              placeholder="Filter by email"
-              value={filters.email}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, email: e.target.value }))
-              }
-            />
-            <Input
-              placeholder="Filter by subject"
-              value={filters.subject}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, subject: e.target.value }))
-              }
-            />
-            <Select
-              value={filters.status}
-              onValueChange={(value) =>
-                setFilters((prev) => ({ ...prev, status: value }))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_VALUE}>All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              variant="outline"
-              onClick={() =>
-                setFilters({
-                  name: "",
-                  email: "",
-                  subject: "",
-                  status: ALL_VALUE,
-                })
-              }
-            >
-              Reset Filters
-            </Button>
-          </div>
+        <Card>
+          <CardContent className="p-6">
+            <h2 className="text-lg font-semibold mb-4">Tutors</h2>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-4">
+              <Input
+                placeholder="Filter by name"
+                value={filters.name}
+                onChange={(e) =>
+                  setFilters((prev) => ({ ...prev, name: e.target.value }))
+                }
+              />
+              <Input
+                placeholder="Filter by email"
+                value={filters.email}
+                onChange={(e) =>
+                  setFilters((prev) => ({ ...prev, email: e.target.value }))
+                }
+              />
+              <Input
+                placeholder="Filter by subject"
+                value={filters.subject}
+                onChange={(e) =>
+                  setFilters((prev) => ({ ...prev, subject: e.target.value }))
+                }
+              />
+              <Select
+                value={filters.status}
+                onValueChange={(value) =>
+                  setFilters((prev) => ({ ...prev, status: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL_VALUE}>All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  setFilters({
+                    name: "",
+                    email: "",
+                    subject: "",
+                    status: ALL_VALUE,
+                  })
+                }
+              >
+                Reset Filters
+              </Button>
+            </div>
 
-          {isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading tutors...</p>
-          ) : (
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Subjects</TableHead>
-                    <TableHead>Experience</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Created At</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
+            {isLoading ? (
+              <p className="text-sm text-muted-foreground">Loading tutors...</p>
+            ) : (
+              <div className="rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Subjects</TableHead>
+                      <TableHead>Experience</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Created At</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
 
-                <TableBody>
-                  {filteredTutors.length > 0 ? (
-                    filteredTutors.map((tutor) => (
-                      <TableRow key={tutor._id}>
-                        <TableCell>{tutor.name}</TableCell>
-                        <TableCell>{tutor.email}</TableCell>
-                        <TableCell>
-                          {tutor.subjects?.join(", ") || "-"}
-                        </TableCell>
-                        <TableCell>{tutor.experienceYears ?? "-"}</TableCell>
-                        <TableCell>{tutor.phone || "-"}</TableCell>
+                  <TableBody>
+                    {filteredTutors.length > 0 ? (
+                      filteredTutors.map((tutor) => (
+                        <TableRow key={tutor._id}>
+                          <TableCell>{tutor.name}</TableCell>
+                          <TableCell>{tutor.email}</TableCell>
+                          <TableCell>
+                            {tutor.subjects?.join(", ") || "-"}
+                          </TableCell>
+                          <TableCell>{tutor.experienceYears ?? "-"}</TableCell>
+                          <TableCell>{tutor.phone || "-"}</TableCell>
 
-                        {/* Status Badge */}
-                        <TableCell>
-                          <span
-                            className={`px-3 py-1 text-xs rounded-full font-medium ${
-                              tutor.status === "inactive"
+                          {/* Status Badge */}
+                          <TableCell>
+                            <span
+                              className={`px-3 py-1 text-xs rounded-full font-medium ${tutor.status === "inactive"
                                 ? "bg-yellow-100 text-yellow-800"
                                 : "bg-green-100 text-green-800"
-                            }`}
-                          >
-                            {tutor.status === "inactive"
-                              ? "Inactive"
-                              : "Active"}
-                          </span>
-                        </TableCell>
+                                }`}
+                            >
+                              {tutor.status === "inactive"
+                                ? "Inactive"
+                                : "Active"}
+                            </span>
+                          </TableCell>
 
-                        <TableCell>
-                          {new Date(tutor.createdAt).toLocaleDateString()}
-                        </TableCell>
+                          <TableCell>
+                            {new Date(tutor.createdAt).toLocaleDateString()}
+                          </TableCell>
 
-                        {/* Actions */}
-                        <TableCell className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEdit(tutor)}
-                          >
-                            Edit
-                          </Button>
+                          {/* Actions */}
+                          <TableCell className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEdit(tutor)}
+                            >
+                              Edit
+                            </Button>
 
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDelete(tutor._id)}
-                          >
-                            Delete
-                          </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDelete(tutor._id)}
+                            >
+                              Delete
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center text-sm">
+                          {allTutors.length === 0
+                            ? "No tutors found"
+                            : "No tutors match the filters"}
                         </TableCell>
                       </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center text-sm">
-                        {allTutors.length === 0
-                          ? "No tutors found"
-                          : "No tutors match the filters"}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       <ConfirmActionDialog

@@ -1,8 +1,15 @@
 import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useGetOnlineUsers } from "@/hooks/admin/useGetOnlineUsers";
-import { getAllBatchesApi } from "@/services/admin.api";
+import {
+  getAllBatchesApi,
+  getNewPendingTenantsApi,
+  approveTenantApi,
+  blockTenantApi,
+  deleteTenantApi,
+} from "@/services/admin.api";
+import toast from "react-hot-toast";
 
 import {
   Card,
@@ -27,15 +34,128 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
 import { Button } from "@/components/ui/button";
+import ConfirmActionDialog from "@/components/common/ConfirmActionDialog";
 
 const AdminDashboard = () => {
+  const queryClient = useQueryClient();
   const { data } = useGetOnlineUsers();
   const { data: batchesData } = useQuery({
     queryKey: ["dashboard-batches"],
     queryFn: () => getAllBatchesApi(1, 1000),
   });
 
+  // New pending tenants query
+  const { data: pendingData } = useQuery({
+    queryKey: ["new-pending-tenants"],
+    queryFn: getNewPendingTenantsApi,
+  });
+
+  const newPendingTenants = pendingData?.data?.tenants || [];
+
+  // --- Pending tenants action mutations ---
+  const [pendingAction, setPendingAction] = useState(null);
+  const [selectedTenantId, setSelectedTenantId] = useState(null);
+
+  const invalidatePendingQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ["new-pending-tenants"] });
+    queryClient.invalidateQueries({ queryKey: ["all-tenants"] });
+    queryClient.invalidateQueries({ queryKey: ["all-tenants", "inactive-count"] });
+  };
+
+  const approveMutation = useMutation({
+    mutationFn: approveTenantApi,
+    onSuccess: () => {
+      toast.success("Center approved successfully");
+      invalidatePendingQueries();
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to approve center");
+    },
+  });
+
+  const blockMutation = useMutation({
+    mutationFn: blockTenantApi,
+    onSuccess: () => {
+      toast.success("Center suspended successfully");
+      invalidatePendingQueries();
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to suspend center");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteTenantApi,
+    onSuccess: () => {
+      toast.success("Center deleted successfully");
+      invalidatePendingQueries();
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to delete center");
+    },
+  });
+
+  const isActionLoading =
+    approveMutation.isPending ||
+    blockMutation.isPending ||
+    deleteMutation.isPending;
+
+  const openConfirmDialog = (tenantId, action) => {
+    setSelectedTenantId(tenantId);
+    setPendingAction(action);
+  };
+
+  const closeConfirmDialog = () => {
+    setSelectedTenantId(null);
+    setPendingAction(null);
+  };
+
+  const confirmAction = () => {
+    if (!selectedTenantId || !pendingAction) return;
+
+    if (pendingAction === "approve") {
+      approveMutation.mutate(selectedTenantId);
+    }
+    if (pendingAction === "suspend") {
+      blockMutation.mutate(selectedTenantId);
+    }
+    if (pendingAction === "delete") {
+      deleteMutation.mutate(selectedTenantId);
+    }
+
+    closeConfirmDialog();
+  };
+
+  const confirmCopy = {
+    approve: {
+      title: "Approve center?",
+      description: "This will activate the center account and allow dashboard access.",
+      confirmText: "Approve",
+    },
+    suspend: {
+      title: "Suspend center?",
+      description: "This will suspend the center account and restrict access immediately.",
+      confirmText: "Suspend",
+    },
+    delete: {
+      title: "Delete center?",
+      description: "This will permanently remove the center account.",
+      confirmText: "Delete",
+    },
+  };
+
+  const activeConfirm = pendingAction ? confirmCopy[pendingAction] : null;
+
+  // --- Existing dashboard state ---
   const [activeTable, setActiveTable] = useState(null);
   const { control: usersControl, watch: watchUsers, reset: resetUsers } = useForm({
     defaultValues: {
@@ -143,7 +263,7 @@ const AdminDashboard = () => {
         Dashboard
       </h1>
 
-      {/* Online Users Card */}
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
 
         <Card
@@ -182,9 +302,130 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
 
+        <Card
+          onClick={() =>
+            setActiveTable((prev) => (prev === "pending" ? null : "pending"))
+          }
+          className="cursor-pointer hover:shadow-md transition"
+        >
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">
+              New Pending Centers
+            </CardTitle>
+          </CardHeader>
+
+          <CardContent>
+            <div className="text-3xl font-bold text-amber-500">
+              {newPendingTenants.length}
+            </div>
+          </CardContent>
+        </Card>
+
       </div>
 
-      {/* Table Section */}
+      {/* ===== New Pending Centers Table ===== */}
+      {activeTable === "pending" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              New Pending Centers
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              These centers have just registered and need review. Once you take any action, they will disappear from here.
+            </p>
+          </CardHeader>
+
+          <CardContent>
+            {newPendingTenants.length === 0 ? (
+              <div className="text-center py-10 text-muted-foreground">
+                No new pending centers
+              </div>
+            ) : (
+              <div className="w-full overflow-x-auto">
+                <Table className="min-w-200">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Institute Name</TableHead>
+                      <TableHead>Owner</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Plan</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+
+                  <TableBody>
+                    {newPendingTenants.map((tenant) => (
+                      <TableRow key={tenant._id}>
+                        <TableCell className="font-medium capitalize">
+                          {tenant.name}
+                        </TableCell>
+
+                        <TableCell className="capitalize">
+                          {tenant.ownerUserId?.name || "N/A"}
+                        </TableCell>
+
+                        <TableCell>
+                          {tenant.ownerUserId?.email || "N/A"}
+                        </TableCell>
+
+                        <TableCell className="capitalize">
+                          {tenant.plan}
+                        </TableCell>
+
+                        <TableCell>
+                          <span className="px-3 py-1 text-xs rounded-full font-medium bg-yellow-100 text-yellow-800">
+                            {tenant.status}
+                          </span>
+                        </TableCell>
+
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                className="capitalize w-24 border-2"
+                                variant="ghost"
+                                size="sm"
+                                disabled={isActionLoading}
+                              >
+                                Actions
+                              </Button>
+                            </DropdownMenuTrigger>
+
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => openConfirmDialog(tenant._id, "approve")}
+                              >
+                                Approve
+                              </DropdownMenuItem>
+
+                              <DropdownMenuItem
+                                onClick={() => openConfirmDialog(tenant._id, "suspend")}
+                                className="text-red-600"
+                              >
+                                Suspend
+                              </DropdownMenuItem>
+
+                              <DropdownMenuItem
+                                onClick={() => openConfirmDialog(tenant._id, "delete")}
+                                className="text-red-600"
+                              >
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ===== Online Users Table ===== */}
       {activeTable === "users" && (
         <Card>
 
@@ -406,6 +647,19 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Confirm Action Dialog */}
+      <ConfirmActionDialog
+        open={Boolean(selectedTenantId && pendingAction)}
+        onOpenChange={(open) => {
+          if (!open) closeConfirmDialog();
+        }}
+        title={activeConfirm?.title}
+        description={activeConfirm?.description}
+        confirmText={activeConfirm?.confirmText}
+        onConfirm={confirmAction}
+        isConfirming={isActionLoading}
+      />
 
     </div>
   );

@@ -5,6 +5,11 @@ export const getPendingTenantsApi = () => {
   return API.get("/admin/tenants/pending");
 };
 
+// Get new pending tenants (never reviewed by admin)
+export const getNewPendingTenantsApi = () => {
+  return API.get("/admin/tenants/new-pending");
+};
+
 // Get all tenants
 export const getAllTenantsApi = (page = 1, limit = 10) => {
   return API.get(`/admin/tenants?page=${page}&limit=${limit}`);

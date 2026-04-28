@@ -8,6 +8,7 @@ import {
   blockTenant,
   deleteTenant,
   getPendingTenants,
+  getNewPendingTenants,
   getAllTenants,
   getOnlineUsers,
   updateProfile,
@@ -47,6 +48,14 @@ router.get(
   authMiddleware,
   authorizeRoles("superadmin"),
   getPendingTenants
+);
+
+// Get new pending tenants (never reviewed)
+router.get(
+  "/tenants/new-pending",
+  authMiddleware,
+  authorizeRoles("superadmin"),
+  getNewPendingTenants
 );
 
 // Approve tenant

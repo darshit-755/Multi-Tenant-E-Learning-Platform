@@ -93,6 +93,13 @@ export const markAttendance = async (req, res) => {
       return res.status(404).json({ message: "Class not found" });
     }
 
+    // Only allow attendance marking after class is completed
+    if (classRecord.status !== "completed") {
+      return res.status(400).json({
+        message: "Attendance can only be marked after the class is completed",
+      });
+    }
+
     const tutorProfile = await Tutor.findOne({ userId, tenantId }).select("_id");
     if (!tutorProfile) {
       return res.status(404).json({ message: "Tutor profile not found" });
@@ -496,6 +503,13 @@ export const markVideoAttendance = async (req, res) => {
     const classRecord = await Class.findOne({ _id: classId, tenantId });
     if (!classRecord) {
       return res.status(404).json({ message: "Class not found" });
+    }
+
+    // Only allow attendance marking after class is completed
+    if (classRecord.status !== "completed") {
+      return res.status(400).json({
+        message: "Attendance can only be marked after the class is completed",
+      });
     }
 
     // Verify student belongs to the batch

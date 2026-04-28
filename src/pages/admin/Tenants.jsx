@@ -133,7 +133,7 @@ export default function Tenants() {
 
     return tuitionNameMatch && emailMatch && planMatch && statusMatch;
   });
-  
+
 
   if (isLoading) return <Loader />;
 
@@ -238,8 +238,8 @@ export default function Tenants() {
                 <Table className="min-w-200">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Tuition Name</TableHead>
-                      <TableHead>Owner Name</TableHead>
+                      <TableHead>Institute Name</TableHead>
+                      <TableHead>Owner</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Plan</TableHead>
                       <TableHead>Status</TableHead>
@@ -268,13 +268,12 @@ export default function Tenants() {
 
                         <TableCell>
                           <span
-                            className={`px-3 py-1 text-xs rounded-full font-medium ${
-                              tenant.status === "inactive"
+                            className={`px-3 py-1 text-xs rounded-full font-medium ${tenant.status === "inactive"
                                 ? "bg-yellow-100 text-yellow-800"
                                 : tenant.status === "active"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
-                            }`}
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800"
+                              }`}
                           >
                             {tenant.status}
                           </span>
@@ -326,7 +325,7 @@ export default function Tenants() {
                 </Table>
               </div>
 
-              
+
               {totalPages > 1 && (
                 <Pagination className="mt-6">
                   <PaginationContent>

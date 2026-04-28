@@ -100,6 +100,9 @@ export default function AddStudent() {
         parentName: data.parentName,
         status: data.status,
       };
+      if (String(data.password || "").trim()) {
+        payload.password = data.password;
+      }
       const res = await updateStudent({
         studentId: editingStudent._id,
         data: payload,
@@ -208,11 +211,11 @@ export default function AddStudent() {
             </div>
 
             <div>
-              <Label>Password</Label>
+              <Label>{isEditMode ? "Password (Optional)" : "Password"}</Label>
               <div className="relative mt-1">
                 <Input
                   type={showPassword ? "text" : "password"}
-                  placeholder="Minimum 6 characters"
+                  placeholder={isEditMode ? "Leave blank to keep current password" : "Minimum 6 characters"}
                   className="pr-10"
                   {...register("password", {
                     required: isEditMode ? false : "Password is required",
