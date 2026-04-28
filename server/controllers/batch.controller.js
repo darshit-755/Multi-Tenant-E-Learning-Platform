@@ -74,7 +74,7 @@ export const updateBatch = async (req, res) => {
   try {
     const tenantId = req.user.tenantId;
     const { batchId } = req.params;
-    const { name, status } = req.body;
+    const { name, status, subjectId, teacherId, studentIds } = req.body;
 
     const batch = await Batch.findOne({ _id: batchId, tenantId });
     if (!batch) {
@@ -83,6 +83,49 @@ export const updateBatch = async (req, res) => {
 
     if (name !== undefined) batch.name = String(name).trim();
     if (status !== undefined) batch.status = status;
+
+    if (subjectId !== undefined) {
+      const subject = await Subject.findOne({ _id: subjectId, tenantId }).select(
+        "_id",
+      );
+      if (!subject) {
+        return res.status(404).json({ message: "Subject not found" });
+      }
+      batch.subjectId = subject._id;
+    }
+
+    if (teacherId !== undefined) {
+      const teacher = await Tutor.findOne({ _id: teacherId, tenantId }).select(
+        "_id",
+      );
+      if (!teacher) {
+        return res.status(404).json({ message: "Teacher not found" });
+      }
+      batch.teacherId = teacher._id;
+    }
+
+    if (studentIds !== undefined) {
+      if (!Array.isArray(studentIds)) {
+        return res.status(400).json({ message: "studentIds must be an array" });
+      }
+
+      if (studentIds.length === 0) {
+        batch.studentIds = [];
+      } else {
+        const students = await Student.find({
+          _id: { $in: studentIds },
+          tenantId,
+        }).select("_id");
+
+        if (students.length !== studentIds.length) {
+          return res.status(400).json({
+            message: "One or more students not found in your institute",
+          });
+        }
+
+        batch.studentIds = students.map((student) => student._id);
+      }
+    }
 
     await batch.save();
 

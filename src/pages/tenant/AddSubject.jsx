@@ -26,6 +26,11 @@ export default function AddSubject() {
   const { mutateAsync: updateSubject, isPending: isUpdating } = useUpdateSubject();
   const { data: subjectsData, isLoading } = useGetSubjects();
   const [editingSubject, setEditingSubject] = useState(null);
+  const ALL_VALUE = "__all";
+  const [filters, setFilters] = useState({
+    name: "",
+    status: ALL_VALUE,
+  });
 
   const {
     register,
@@ -88,6 +93,14 @@ export default function AddSubject() {
   };
 
   const subjects = subjectsData?.subjects || [];
+  const filteredSubjects = subjects.filter((subject) => {
+    const nameMatch =
+      !filters.name ||
+      String(subject.name || "").toLowerCase().includes(filters.name.toLowerCase());
+    const statusMatch =
+      filters.status === ALL_VALUE || String(subject.status) === filters.status;
+    return nameMatch && statusMatch;
+  });
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-8">
@@ -151,6 +164,32 @@ export default function AddSubject() {
       <Card>
         <CardContent className="p-6">
           <h2 className="text-lg font-semibold mb-4">All Subjects</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+            <Input
+              placeholder="Filter by subject name"
+              value={filters.name}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, name: e.target.value }))
+              }
+            />
+            <select
+              value={filters.status}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, status: e.target.value }))
+              }
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value={ALL_VALUE}>All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+            <Button
+              variant="outline"
+              onClick={() => setFilters({ name: "", status: ALL_VALUE })}
+            >
+              Reset Filters
+            </Button>
+          </div>
 
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Loading subjects...</p>
@@ -168,8 +207,8 @@ export default function AddSubject() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {subjects.length > 0 ? (
-                    subjects.map((subject) => (
+                  {filteredSubjects.length > 0 ? (
+                    filteredSubjects.map((subject) => (
                       <TableRow key={subject._id}>
                         <TableCell>{subject.name}</TableCell>
                         <TableCell>{subject.description || "-"}</TableCell>
@@ -211,7 +250,9 @@ export default function AddSubject() {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center text-sm">
-                        No subjects found
+                        {subjects.length === 0
+                          ? "No subjects found"
+                          : "No subjects match the filters"}
                       </TableCell>
                     </TableRow>
                   )}

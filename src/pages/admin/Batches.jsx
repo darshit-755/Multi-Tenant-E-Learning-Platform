@@ -94,7 +94,7 @@ export default function Batches() {
               control={control}
               render={({ field }) => (
                 <Input
-                  placeholder="Filter by tenant"
+                  placeholder="Filter by center"
                   {...field}
                 />
               )}
@@ -153,7 +153,7 @@ export default function Batches() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Batch Name</TableHead>
-                      <TableHead>Tenant</TableHead>
+                      <TableHead>Center</TableHead>
                       <TableHead>Subject</TableHead>
                       <TableHead>Teacher</TableHead>
                       <TableHead>Students Count</TableHead>

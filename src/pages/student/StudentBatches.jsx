@@ -201,7 +201,9 @@ export default function StudentBatches() {
 
                           <TableCell>{batch.subjectId?.name || "-"}</TableCell>
 
-                          <TableCell>{batch.teacherId?.userId?.name || "-"}</TableCell>
+                          <TableCell className="capitalize">
+                            {batch.teacherId?.userId?.name || "-"}
+                          </TableCell>
 
                           <TableCell className="text-left">
                             <DropdownMenu>

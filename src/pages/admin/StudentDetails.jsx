@@ -57,7 +57,7 @@ const StudentDetails = () => {
                 <p className="font-medium capitalize">{student?.status || "N/A"}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Tenant</p>
+                <p className="text-sm text-muted-foreground">Center</p>
                 <p className="font-medium capitalize">{student?.tenantId?.name || "N/A"}</p>
               </div>
             </div>

@@ -12,7 +12,7 @@ import AdminDashboard from "@/pages/admin/AdminDashboard";
 import Tenants from "@/pages/admin/Tenants";
 import Tutors from "@/pages/admin/Tutors";
 import Students from "@/pages/admin/Students";
-import StudentDetails from "@/pages/admin/StudentDetails";
+import AdminStudentDetails from "@/pages/admin/StudentDetails";
 import Batches from "@/pages/admin/Batches";
 import AdminProfile from "@/pages/admin/Profile";
 
@@ -22,6 +22,7 @@ import TenantProfile from "@/pages/tenant/Profile";
 
 import AddTutor from "@/pages/tenant/AddTutor";
 import AddStudent from "@/pages/tenant/AddStudent";
+import TenantStudentDetails from "@/pages/tenant/StudentDetails";
 import ManageClasses from "@/pages/tenant/ManageClasses";
 import AddSubject from "@/pages/tenant/AddSubject";
 import CreateBatch from "@/pages/tenant/CreateBatch";
@@ -75,7 +76,7 @@ function App() {
             <Route path="/admin/tenants" element={<Tenants />} />
             <Route path="/admin/tutors" element={<Tutors />} />
             <Route path="/admin/students" element={<Students />} />
-            <Route path="/admin/student/:studentId" element={<StudentDetails />} />
+            <Route path="/admin/student/:studentId" element={<AdminStudentDetails />} />
             <Route path="/admin/batches" element={<Batches />} />
             <Route path="/admin/profile" element={<AdminProfile />} />
           </Route>
@@ -95,6 +96,7 @@ function App() {
             <Route path="/tenant/students/add" element={<AddStudent />} />
             <Route path="/tenant/students/view" element={<AddStudent />} />
             <Route path="/tenant/students/edit/:studentId" element={<AddStudent />} />
+            <Route path="/tenant/students/:studentId" element={<TenantStudentDetails />} />
             <Route path="/tenant/add-student" element={<Navigate to="/tenant/students/add" replace />} />
             <Route path="/tenant/add-subject" element={<AddSubject />} />
             <Route path="/tenant/batches/add" element={<CreateBatch />} />

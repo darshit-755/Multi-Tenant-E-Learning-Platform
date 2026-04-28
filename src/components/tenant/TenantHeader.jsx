@@ -36,13 +36,13 @@ const TenantHeader = () => {
             side="top"
             className="max-h-full w-full bg-slate-900 text-white p-4"
           >
-            <h2 className="mb-4 font-semibold">Tenant</h2>
+            <h2 className="mb-4 font-semibold">Center</h2>
             <TenantSidebarContent />
           </SheetContent>
         </Sheet>
 
         <h1 className="text-lg font-semibold hidden sm:block">
-          Tenant Dashboard
+          Center Dashboard
         </h1>
       </div>
 
@@ -51,7 +51,7 @@ const TenantHeader = () => {
           <Avatar className="cursor-pointer">
             <AvatarImage src={resolveMediaUrl(user?.profileImage)} />
             <AvatarFallback>
-              {user?.name?.charAt(0)?.toUpperCase() || "T"}
+              {user?.name?.charAt(0)?.toUpperCase() || "C"}
             </AvatarFallback>
           </Avatar>
         </DropdownMenuTrigger>

@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +52,14 @@ export default function AddStudent() {
   const { mutate: deleteStudent, isPending: isDeleting } = useDeleteStudent();
   const [editingStudent, setEditingStudent] = useState(null);
   const [deleteStudentId, setDeleteStudentId] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const ALL_VALUE = "__all";
+  const [filters, setFilters] = useState({
+    name: "",
+    email: "",
+    status: ALL_VALUE,
+  });
   const isEditMode = Boolean(editingStudent);
 
   const {
@@ -58,6 +67,7 @@ export default function AddStudent() {
     handleSubmit,
     reset,
     setValue,
+    getValues,
     watch,
     formState: { errors },
   } = useForm();
@@ -103,7 +113,9 @@ export default function AddStudent() {
       return;
     }
 
-    const res = await createStudent(data);
+    const { confirmPassword: _confirmPassword, ...payload } = data;
+
+    const res = await createStudent(payload);
     if (res) {
       toast.success("Student created successfully!");
       reset();
@@ -138,6 +150,21 @@ export default function AddStudent() {
     setValue("parentName", student.parentName || "");
     setValue("status", student.status || "active");
   }, [isEditPage, students, studentId, setValue]);
+
+  const allStudents = students?.students || [];
+  const filteredStudents = allStudents.filter((student) => {
+    const nameMatch =
+      !filters.name ||
+      String(student.name || "").toLowerCase().includes(filters.name.toLowerCase());
+    const emailMatch =
+      !filters.email ||
+      String(student.email || "")
+        .toLowerCase()
+        .includes(filters.email.toLowerCase());
+    const statusMatch =
+      filters.status === ALL_VALUE || String(student.status) === filters.status;
+    return nameMatch && emailMatch && statusMatch;
+  });
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-8">
@@ -182,24 +209,72 @@ export default function AddStudent() {
 
             <div>
               <Label>Password</Label>
-              <Input
-                type="password"
-                placeholder="Minimum 6 characters"
-                className="mt-1"
-                {...register("password", {
-                  required: isEditMode ? false : "Password is required",
-                  minLength: {
-                    value: 6,
-                    message: "Minimum 6 characters",
-                  },
-                })}
-              />
+              <div className="relative mt-1">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Minimum 6 characters"
+                  className="pr-10"
+                  {...register("password", {
+                    required: isEditMode ? false : "Password is required",
+                    validate: (value) =>
+                      !value || value.length >= 6 || "Minimum 6 characters",
+                  })}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 hover:text-slate-700"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
               {errors.password && (
                 <p className="text-xs text-red-500 mt-1">
                   {errors.password.message}
                 </p>
               )}
             </div>
+
+            {!isEditMode && (
+              <div>
+                <Label>Confirm Password</Label>
+                <div className="relative mt-1">
+                  <Input
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Re-enter password"
+                    className="pr-10"
+                    {...register("confirmPassword", {
+                      required: "Confirm password is required",
+                      validate: (value) =>
+                        value === getValues("password") ||
+                        "Passwords do not match",
+                    })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 hover:text-slate-700"
+                    aria-label={
+                      showConfirmPassword
+                        ? "Hide confirm password"
+                        : "Show confirm password"
+                    }
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff size={18} />
+                    ) : (
+                      <Eye size={18} />
+                    )}
+                  </button>
+                </div>
+                {errors.confirmPassword && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.confirmPassword.message}
+                  </p>
+                )}
+              </div>
+            )}
 
             <div>
               <Label>Roll Number</Label>
@@ -340,6 +415,45 @@ export default function AddStudent() {
       <Card>
         <CardContent className="p-6">
           <h2 className="text-lg font-semibold mb-4">All Students</h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+            <Input
+              placeholder="Filter by name"
+              value={filters.name}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, name: e.target.value }))
+              }
+            />
+            <Input
+              placeholder="Filter by email"
+              value={filters.email}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, email: e.target.value }))
+              }
+            />
+            <Select
+              value={filters.status}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, status: value }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_VALUE}>All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              onClick={() =>
+                setFilters({ name: "", email: "", status: ALL_VALUE })
+              }
+            >
+              Reset Filters
+            </Button>
+          </div>
 
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Loading students...</p>
@@ -362,9 +476,13 @@ export default function AddStudent() {
                 </TableHeader>
 
                 <TableBody>
-                  {students?.students?.length > 0 ? (
-                    students.students.map((student) => (
-                      <TableRow key={student._id}>
+                  {filteredStudents.length > 0 ? (
+                    filteredStudents.map((student) => (
+                      <TableRow
+                        key={student._id}
+                        className="cursor-pointer"
+                        onClick={() => navigate(`/tenant/students/${student._id}`)}
+                      >
                         <TableCell>{student.name}</TableCell>
                         <TableCell>{student.email}</TableCell>
                         <TableCell>{student.rollNumber || "-"}</TableCell>
@@ -397,7 +515,10 @@ export default function AddStudent() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleEdit(student)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(student);
+                            }}
                           >
                             Edit
                           </Button>
@@ -405,7 +526,10 @@ export default function AddStudent() {
                           <Button
                             size="sm"
                             variant="destructive"
-                            onClick={() => handleDelete(student._id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(student._id);
+                            }}
                           >
                             Delete
                           </Button>
@@ -415,7 +539,9 @@ export default function AddStudent() {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={10} className="text-center text-sm">
-                        No students found
+                        {allStudents.length === 0
+                          ? "No students found"
+                          : "No students match the filters"}
                       </TableCell>
                     </TableRow>
                   )}

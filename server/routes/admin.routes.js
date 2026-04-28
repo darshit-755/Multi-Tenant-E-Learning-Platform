@@ -6,6 +6,7 @@ import {
   approveTenant,
   makeTenantInactive,
   blockTenant,
+  deleteTenant,
   getPendingTenants,
   getAllTenants,
   getOnlineUsers,
@@ -71,6 +72,14 @@ router.patch(
   authMiddleware,
   authorizeRoles("superadmin"),
   blockTenant
+);
+
+// Delete tenant
+router.delete(
+  "/tenants/:id",
+  authMiddleware,
+  authorizeRoles("superadmin"),
+  deleteTenant
 );
 
 //update profile

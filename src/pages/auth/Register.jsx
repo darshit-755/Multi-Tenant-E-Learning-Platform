@@ -57,9 +57,9 @@ export default function Register() {
           
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
-            {/* Tenant Name */}
+            {/* Center Name */}
             <div className="space-y-2">
-              <Label htmlFor="tenantName">Tenant Name</Label>
+              <Label htmlFor="tenantName">Center Name</Label>
               <Input
                 id="tenantName"
                 placeholder="Your Company Name"
@@ -67,7 +67,7 @@ export default function Register() {
                   focus-visible:ring-2 focus-visible:ring-slate-500
                   ${errors.tenantName ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                 {...register("tenantName", {
-                  required: "Tenant name is required",
+                  required: "Center name is required",
                 })}
               />
               {errors.tenantName && (

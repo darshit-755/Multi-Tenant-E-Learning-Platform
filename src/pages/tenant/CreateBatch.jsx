@@ -68,6 +68,13 @@ export default function CreateBatch() {
 
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [showStudentDropdown, setShowStudentDropdown] = useState(false);
+  const ALL_VALUE = "__all";
+  const [filters, setFilters] = useState({
+    name: "",
+    subject: ALL_VALUE,
+    teacher: "",
+    status: ALL_VALUE,
+  });
   const studentDropdownRef = useRef(null);
 
   useEffect(() => {
@@ -89,25 +96,35 @@ export default function CreateBatch() {
   const students = studentsData?.students || [];
   const batches = batchesData?.batches || [];
 
+  const getStudentId = (student) =>
+    student?.studentId || student?._id || student?.id || "";
+  const getTutorId = (tutor) => tutor?.tutorId || tutor?._id || "";
+
   const activeStudents = students.filter((s) => s.status === "active");
+  const studentsForSelect =
+    editingBatch?.studentIds?.length > 0 ? students : activeStudents;
 
   const toggleStudent = (studentIdValue) => {
-    setSelectedStudents((prev) =>
-      prev.includes(studentIdValue)
+    setSelectedStudents((prev) => {
+      const next = prev.includes(studentIdValue)
         ? prev.filter((id) => id !== studentIdValue)
-        : [...prev, studentIdValue],
-    );
+        : [...prev, studentIdValue];
+      setValue("studentIds", next, { shouldValidate: true });
+      return next;
+    });
   };
   const isAllSelected =
-    activeStudents.length > 0 &&
-    selectedStudents.length === activeStudents.length;
+    studentsForSelect.length > 0 &&
+    selectedStudents.length === studentsForSelect.length;
 
   const handleSelectAllToggle = () => {
     if (isAllSelected) {
       setSelectedStudents([]);
+      setValue("studentIds", [], { shouldValidate: true });
     } else {
-      const allIds = activeStudents.map((s) => s.studentId);
+      const allIds = studentsForSelect.map((s) => getStudentId(s)).filter(Boolean);
       setSelectedStudents(allIds);
+      setValue("studentIds", allIds, { shouldValidate: true });
     }
   };
 
@@ -116,7 +133,9 @@ export default function CreateBatch() {
   );
 
   const filteredTutors = tutors.filter((tutor) => {
-    if (tutor.status !== "active") return false;
+    const tutorId = getTutorId(tutor);
+    const isCurrentTeacher = isEditPage && tutorId === selectedTeacherId;
+    if (tutor.status !== "active" && !isCurrentTeacher) return false;
     if (!selectedSubject) return false;
 
     const tutorSubjects = tutor.subjects || [];
@@ -133,6 +152,28 @@ export default function CreateBatch() {
 
     return matchesBySubjectName || matchesBySubjectId;
   });
+  const subjectsForSelect = isEditPage
+    ? subjects
+    : subjects.filter((subject) => subject.status === "active");
+  const filteredBatches = batches.filter((batch) => {
+    const nameMatch =
+      !filters.name ||
+      String(batch.name || "").toLowerCase().includes(filters.name.toLowerCase());
+    const subjectMatch =
+      filters.subject === ALL_VALUE ||
+      String(batch.subjectId?.name || "") === filters.subject;
+    const teacherMatch =
+      !filters.teacher ||
+      String(batch.teacherId?.userId?.name || "")
+        .toLowerCase()
+        .includes(filters.teacher.toLowerCase());
+    const statusMatch =
+      filters.status === ALL_VALUE || String(batch.status || "") === filters.status;
+    return nameMatch && subjectMatch && teacherMatch && statusMatch;
+  });
+  const uniqueSubjects = [
+    ...new Set(batches.map((batch) => batch.subjectId?.name).filter(Boolean)),
+  ];
 
   const onSubmit = async (data) => {
     if (!selectedSubjectId || !selectedTeacherId) {
@@ -143,6 +184,9 @@ export default function CreateBatch() {
     if (editingBatch) {
       const payload = {
         name: data.name,
+        subjectId: selectedSubjectId,
+        teacherId: selectedTeacherId,
+        studentIds: selectedStudents,
       };
       const res = await updateBatch({
         batchId: editingBatch._id,
@@ -169,6 +213,7 @@ export default function CreateBatch() {
       setSelectedSubjectId("");
       setSelectedTeacherId("");
       setSelectedStudents([]);
+      setValue("studentIds", [], { shouldValidate: false });
       setShowStudentDropdown(false);
     }
   };
@@ -182,6 +227,7 @@ export default function CreateBatch() {
     setSelectedSubjectId("");
     setSelectedTeacherId("");
     setSelectedStudents([]);
+    setValue("studentIds", [], { shouldValidate: false });
     setShowStudentDropdown(false);
     reset();
     if (isEditPage) {
@@ -194,10 +240,22 @@ export default function CreateBatch() {
     const batch = batches.find((item) => item._id === batchId);
     if (!batch) return;
 
+    const prefilledSubjectId =
+      batch.subjectId?._id || batch.subjectId || "";
+    const prefilledTeacherId =
+      batch.teacherId?.tutorId || batch.teacherId?._id || batch.teacherId || "";
+    const prefilledStudentIds = (batch.studentIds || [])
+      .map((student) => student.studentId || student._id || student)
+      .filter(Boolean);
+
     setEditingBatch(batch);
     setValue("name", batch.name || "");
-    setSelectedSubjectId(batch.subjectId?._id || "");
-    setSelectedTeacherId(batch.teacherId?._id || "");
+    setSelectedSubjectId(prefilledSubjectId);
+    setSelectedTeacherId(prefilledTeacherId);
+    setSelectedStudents(prefilledStudentIds);
+    setValue("subjectId", prefilledSubjectId, { shouldValidate: true });
+    setValue("teacherId", prefilledTeacherId, { shouldValidate: true });
+    setValue("studentIds", prefilledStudentIds, { shouldValidate: false });
   }, [isEditPage, batches, batchId, setValue]);
 
   const handleToggleStatus = async (batch) => {
@@ -251,9 +309,7 @@ export default function CreateBatch() {
                   <SelectValue placeholder="Select subject" />
                 </SelectTrigger>
                 <SelectContent>
-                  {subjects
-                    .filter((subject) => subject.status === "active")
-                    .map((subject) => (
+                  {subjectsForSelect.map((subject) => (
                       <SelectItem key={subject._id} value={subject._id}>
                         {subject.name}
                       </SelectItem>
@@ -288,13 +344,16 @@ export default function CreateBatch() {
                   {selectedSubjectId ? (
                     filteredTutors.length > 0 ? (
                       filteredTutors.map((tutor) => (
-                        <SelectItem key={tutor.tutorId} value={tutor.tutorId}>
+                        <SelectItem
+                          key={getTutorId(tutor)}
+                          value={getTutorId(tutor)}
+                        >
                           {tutor.name}
                         </SelectItem>
                       ))
                     ) : (
                       <div className="px-3 py-2 text-sm text-muted-foreground">
-                        No teachers available
+                        No tutor available for this subject. Add a tutor for this subject first.
                       </div>
                     )
                   ) : (
@@ -308,6 +367,7 @@ export default function CreateBatch() {
                 type="hidden"
                 {...register("teacherId", { required: "Teacher is required" })}
               />
+              <input type="hidden" {...register("studentIds")} />
               {errors.teacherId && (
                 <p className="text-xs text-red-500 mt-1">
                   {errors.teacherId.message}
@@ -341,16 +401,16 @@ export default function CreateBatch() {
                   </label>
 
                   {/* Students List */}
-                  {activeStudents.length > 0 ? (
-                    activeStudents.map((student) => (
+                  {studentsForSelect.length > 0 ? (
+                    studentsForSelect.map((student) => (
                       <label
-                        key={student.studentId}
+                        key={getStudentId(student)}
                         className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent cursor-pointer"
                       >
                         <input
                           type="checkbox"
-                          checked={selectedStudents.includes(student.studentId)}
-                          onChange={() => toggleStudent(student.studentId)}
+                          checked={selectedStudents.includes(getStudentId(student))}
+                          onChange={() => toggleStudent(getStudentId(student))}
                         />
                         {student.name}
                       </label>
@@ -398,6 +458,68 @@ export default function CreateBatch() {
       <Card>
         <CardContent className="p-6">
           <h2 className="text-lg font-semibold mb-4">All Batches</h2>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-4">
+            <Input
+              placeholder="Filter by batch name"
+              value={filters.name}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, name: e.target.value }))
+              }
+            />
+            <Select
+              value={filters.subject}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, subject: value }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by subject" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_VALUE}>All Subjects</SelectItem>
+                {uniqueSubjects.map((subject) => (
+                  <SelectItem key={subject} value={subject}>
+                    {subject}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              placeholder="Filter by teacher"
+              value={filters.teacher}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, teacher: e.target.value }))
+              }
+            />
+            <Select
+              value={filters.status}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, status: value }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_VALUE}>All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              onClick={() =>
+                setFilters({
+                  name: "",
+                  subject: ALL_VALUE,
+                  teacher: "",
+                  status: ALL_VALUE,
+                })
+              }
+            >
+              Reset Filters
+            </Button>
+          </div>
 
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Loading batches...</p>
@@ -416,8 +538,8 @@ export default function CreateBatch() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {batches.length > 0 ? (
-                    batches.map((batch) => (
+                  {filteredBatches.length > 0 ? (
+                    filteredBatches.map((batch) => (
                       <TableRow key={batch._id}>
                         <TableCell>{batch.name}</TableCell>
                         <TableCell>{batch.subjectId?.name || "-"}</TableCell>
@@ -469,7 +591,9 @@ export default function CreateBatch() {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center text-sm">
-                        No batches found
+                        {batches.length === 0
+                          ? "No batches found"
+                          : "No batches match the filters"}
                       </TableCell>
                     </TableRow>
                   )}

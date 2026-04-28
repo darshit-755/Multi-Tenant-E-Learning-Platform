@@ -202,6 +202,41 @@ export const makeTenantInactive = async (req, res) => {
 };
 
 /**
+ * Delete Tenant
+ */
+export const deleteTenant = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const tenant = await Tenant.findById(id).populate(
+      "ownerUserId",
+      "name email"
+    );
+
+    if (!tenant) {
+      return res.status(404).json({
+        message: "Tenant not found",
+      });
+    }
+
+    if (tenant.ownerUserId) {
+      await User.findByIdAndDelete(tenant.ownerUserId._id || tenant.ownerUserId);
+    }
+
+    await Tenant.findByIdAndDelete(id);
+
+    return res.status(200).json({
+      message: "Tenant deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete Tenant Error:", error);
+    return res.status(500).json({
+      message: "Server Error",
+    });
+  }
+};
+
+/**
  * Get all online users
  */
 export const getOnlineUsers = async (req, res) => {

@@ -20,7 +20,7 @@ export const AuthProvider = () => {
 
     const roleLabels = {
       superadmin: "Super Admin",
-      tenant: "Tenant",
+      tenant: "Center",
       tutor: "Tutor",
       student: "Student",
     };

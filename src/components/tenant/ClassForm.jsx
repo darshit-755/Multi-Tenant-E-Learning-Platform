@@ -36,6 +36,7 @@ export default function ClassForm({
   const videoLink = watch("videoLink") || "";
   
   const activeSubjects = subjects.filter((s) => s.status === "active");
+  const availableSubjects = isEditMode ? subjects : activeSubjects;
 
   const filteredBatches = batches.filter((batch) => {
     if (batch.status !== "active") return false;
@@ -85,7 +86,7 @@ export default function ClassForm({
             <SelectValue placeholder="Select subject" />
           </SelectTrigger>
           <SelectContent>
-            {activeSubjects.map((subject) => (
+            {availableSubjects.map((subject) => (
               <SelectItem key={subject._id} value={subject._id}>
                 {subject.name}
               </SelectItem>
@@ -131,8 +132,11 @@ export default function ClassForm({
           className="mt-1"
           readOnly
           value={
-            tutors.find((t) => t.tutorId === selectedTeacherId)?.name ||
-            "Auto-selected from batch"
+            tutors.find(
+              (t) =>
+                t.tutorId === selectedTeacherId ||
+                t._id === selectedTeacherId,
+            )?.name || "Auto-selected from batch"
           }
         />
       </div>

@@ -107,7 +107,7 @@ export default function Tutors() {
               control={control}
               render={({ field }) => (
                 <Input
-                  placeholder="Filter by tenant"
+                    placeholder="Filter by center"
                   {...field}
                 />
               )}
@@ -171,7 +171,7 @@ export default function Tutors() {
                       <TableHead>Phone</TableHead>
                       <TableHead>Subjects</TableHead>
                       <TableHead>Experience</TableHead>
-                      <TableHead>Tenant</TableHead>
+                      <TableHead>Center</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>

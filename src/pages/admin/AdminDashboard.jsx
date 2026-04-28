@@ -224,7 +224,7 @@ const AdminDashboard = () => {
 
                     <SelectContent>
                       <SelectItem value="all">All Roles</SelectItem>
-                      <SelectItem value="tenant">Tenant</SelectItem>
+                      <SelectItem value="tenant">Center</SelectItem>
                       <SelectItem value="tutor">Tutor</SelectItem>
                       <SelectItem value="student">Student</SelectItem>
                     </SelectContent>
@@ -322,7 +322,7 @@ const AdminDashboard = () => {
                   <input
                     type="text"
                     {...field}
-                    placeholder="Search batch, tenant, subject, teacher"
+                    placeholder="Search batch, center, subject, teacher"
                     className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs"
                   />
                 )}
@@ -371,7 +371,7 @@ const AdminDashboard = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Batch</TableHead>
-                  <TableHead>Tenant</TableHead>
+                  <TableHead>Center</TableHead>
                   <TableHead>Subject</TableHead>
                   <TableHead>Teacher</TableHead>
                   <TableHead>Students</TableHead>

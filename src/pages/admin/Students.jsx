@@ -110,7 +110,7 @@ export default function Students() {
                 control={control}
                 render={({ field }) => (
                   <Input
-                    placeholder="Filter by tenant"
+                    placeholder="Filter by center"
                     {...field}
                   />
                 )}
@@ -159,7 +159,7 @@ export default function Students() {
                       <TableRow>
                         <TableHead>Name</TableHead>
                         <TableHead>Email</TableHead>
-                        <TableHead>Tenant</TableHead>
+                        <TableHead>Center</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>

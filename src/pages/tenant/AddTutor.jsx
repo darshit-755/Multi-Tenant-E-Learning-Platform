@@ -1,5 +1,5 @@
-import { useForm } from "react-hook-form";
-import { useEffect, useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { useEffect, useState, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -42,7 +42,6 @@ export default function AddTutor() {
   const location = useLocation();
   const navigate = useNavigate();
   const { tutorId } = useParams();
-  const isAddPage = location.pathname === "/tenant/tutors/add";
   const isViewPage = location.pathname === "/tenant/tutors/view";
   const isEditPage = Boolean(tutorId);
   const { mutateAsync: createTutor, isPending: isCreating } =
@@ -53,22 +52,32 @@ export default function AddTutor() {
   const { mutate: deleteTutor, isPending: isDeleting } = useDeleteTutor();
   const [editingTutor, setEditingTutor] = useState(null);
   const [deleteTutorId, setDeleteTutorId] = useState(null);
-  const [selectedSubject, setSelectedSubject] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const ALL_VALUE = "__all";
+  const [filters, setFilters] = useState({
+    name: "",
+    email: "",
+    subject: "",
+    status: ALL_VALUE,
+  });
   const isEditMode = Boolean(editingTutor);
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    getValues,
-    watch,
-    formState: { errors },
-  } = useForm();
+ const {
+  register,
+  handleSubmit,
+  reset,
+  setValue,
+  getValues,
+  watch,
+  control,
+  formState: { errors },
+} = useForm({
+  defaultValues: {
+    subjectId: "",
+  },
+});
   const statusValue = watch("status");
-  register("subject", { required: "Subject is required" });
 
   const handleDelete = (id) => {
     setDeleteTutorId(id);
@@ -86,20 +95,27 @@ export default function AddTutor() {
   };
 
   const onSubmit = async (data) => {
-    if (!selectedSubject) {
+    if (!data.subjectId) {
       toast.error("Please select a subject");
       return;
     }
+
+    const selectedSubjectName =
+      subjectsData?.subjects?.find((subject) => subject._id === data.subjectId)
+        ?.name || "";
 
     if (isEditMode) {
       const payload = {
         name: data.name,
         email: data.email,
-        subjects: [selectedSubject],
+        subjects: selectedSubjectName ? [selectedSubjectName] : [],
         experienceYears: data.experienceYears,
         phone: data.phone,
         status: data.status,
       };
+      if (String(data.password || "").trim()) {
+        payload.password = data.password;
+      }
       const res = await updateTutor({
         tutorId: editingTutor._id,
         data: payload,
@@ -117,12 +133,11 @@ export default function AddTutor() {
 
     const res = await createTutor({
       ...payload,
-      subjects: [selectedSubject],
+      subjects: selectedSubjectName ? [selectedSubjectName] : [],
     });
     if (res) {
       toast.success("Tutor created successfully!");
       reset();
-      setSelectedSubject("");
     }
   };
 
@@ -132,32 +147,70 @@ export default function AddTutor() {
 
   const handleCancelEdit = () => {
     setEditingTutor(null);
-    setSelectedSubject("");
     reset();
     if (isEditPage) {
       navigate("/tenant/tutors/view");
     }
   };
 
-  const subjects = subjectsData?.subjects || [];
-  const activeSubjects = subjects.filter(
+  const subjects = useMemo(() => subjectsData?.subjects || [], [subjectsData]);
+  const activeSubjects = useMemo(() => subjects.filter(
     (subject) => subject.status === "active",
+  ), [subjects]);
+  const subjectsForSelect = isEditMode ? subjects : activeSubjects;
+
+useEffect(() => {
+  if (!isEditPage) return;
+
+  // wait for BOTH data
+  if (!tutors?.tutors?.length || !subjects.length) return;
+
+  const tutor = tutors.tutors.find((item) => item._id === tutorId);
+  if (!tutor) return;
+
+  setEditingTutor(tutor);
+   const tutorPrimarySubjectName = tutor.subjects?.[0] || "";
+
+  const matchedSubject = subjects.find((subject) =>
+    subject.name?.trim().toLowerCase() ===
+    String(tutorPrimarySubjectName).trim().toLowerCase()
   );
 
-  useEffect(() => {
-    if (!isEditPage || !tutors?.tutors?.length) return;
-    const tutor = tutors.tutors.find((item) => item._id === tutorId);
-    if (!tutor) return;
+  const subjectId = matchedSubject?._id || "";
 
-    setEditingTutor(tutor);
-    setValue("name", tutor.name || "");
-    setValue("email", tutor.email || "");
-    setValue("password", "");
-    setValue("experienceYears", tutor.experienceYears ?? 0);
-    setValue("phone", normalizeIndianMobileNumber(tutor.phone || ""));
-    setValue("status", tutor.status || "active");
-    setSelectedSubject(tutor.subjects?.[0] || "");
-  }, [isEditPage, tutors, tutorId, setValue]);
+  reset({
+  name: tutor.name || "",
+  email: tutor.email || "",
+  password: "",
+  experienceYears: tutor.experienceYears ?? 0,
+  phone: normalizeIndianMobileNumber(tutor.phone || ""),
+  status: tutor.status || "active",
+  subjectId: subjectId,
+});
+
+ 
+
+  
+
+}, [isEditPage, tutors, subjects, tutorId, setValue]);
+
+  const allTutors = tutors?.tutors || [];
+  const filteredTutors = allTutors.filter((tutor) => {
+    const nameMatch =
+      !filters.name ||
+      String(tutor.name || "").toLowerCase().includes(filters.name.toLowerCase());
+    const emailMatch =
+      !filters.email ||
+      String(tutor.email || "").toLowerCase().includes(filters.email.toLowerCase());
+    const subjectMatch =
+      !filters.subject ||
+      String(tutor.subjects?.join(", ") || "")
+        .toLowerCase()
+        .includes(filters.subject.toLowerCase());
+    const statusMatch =
+      filters.status === ALL_VALUE || String(tutor.status) === filters.status;
+    return nameMatch && emailMatch && subjectMatch && statusMatch;
+  });
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-8">
@@ -213,10 +266,8 @@ export default function AddTutor() {
                   className="pr-10"
                   {...register("password", {
                     required: isEditMode ? false : "Password is required",
-                    minLength: {
-                      value: 6,
-                      message: "Minimum 6 characters",
-                    },
+                    validate: (value) =>
+                      !value || value.length >= 6 || "Minimum 6 characters",
                   })}
                 />
                 <button
@@ -269,33 +320,41 @@ export default function AddTutor() {
             {/* Subjects */}
             <div>
               <Label>Subjects</Label>
-              <Select
-                value={selectedSubject}
-                onValueChange={(value) => {
-                  setSelectedSubject(value);
-                  setValue("subject", value, { shouldValidate: true });
-                }}
-              >
-                <SelectTrigger className="mt-1 w-full">
-                  <SelectValue placeholder="Select subject" />
-                </SelectTrigger>
-                <SelectContent>
-                  {activeSubjects.length > 0 ? (
-                    activeSubjects.map((subject) => (
-                      <SelectItem key={subject._id} value={subject.name}>
-                        {subject.name}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="__no_subject" disabled>
-                      Add subjects first to assign here
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-              {errors.subject && (
+              <Controller
+                name="subjectId"
+                control={control}
+                rules={{ required: "Subject is required" }}
+                render={({ field }) => (
+                  <Select
+                    value={field.value || ""}
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                     
+                    }}
+                  >
+                    <SelectTrigger className="mt-1 w-full">
+                      <SelectValue placeholder={subjectsForSelect.find(s => s._id === field.value)?.name
+    || "Select subject"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subjectsForSelect.length > 0 ? (
+                        subjectsForSelect.map((subject) => (
+                          <SelectItem key={subject._id} value={subject._id}>
+                            {subject.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="__no_subject" disabled>
+                          Add subjects first to assign here
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.subjectId && (
                 <p className="text-xs text-red-500 mt-1">
-                  {errors.subject.message}
+                  {errors.subjectId.message}
                 </p>
               )}
             </div>
@@ -401,6 +460,57 @@ export default function AddTutor() {
       <Card>
         <CardContent className="p-6">
           <h2 className="text-lg font-semibold mb-4">Tutors</h2>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-4">
+            <Input
+              placeholder="Filter by name"
+              value={filters.name}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, name: e.target.value }))
+              }
+            />
+            <Input
+              placeholder="Filter by email"
+              value={filters.email}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, email: e.target.value }))
+              }
+            />
+            <Input
+              placeholder="Filter by subject"
+              value={filters.subject}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, subject: e.target.value }))
+              }
+            />
+            <Select
+              value={filters.status}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, status: value }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_VALUE}>All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              onClick={() =>
+                setFilters({
+                  name: "",
+                  email: "",
+                  subject: "",
+                  status: ALL_VALUE,
+                })
+              }
+            >
+              Reset Filters
+            </Button>
+          </div>
 
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Loading tutors...</p>
@@ -421,8 +531,8 @@ export default function AddTutor() {
                 </TableHeader>
 
                 <TableBody>
-                  {tutors?.tutors?.length > 0 ? (
-                    tutors.tutors.map((tutor) => (
+                  {filteredTutors.length > 0 ? (
+                    filteredTutors.map((tutor) => (
                       <TableRow key={tutor._id}>
                         <TableCell>{tutor.name}</TableCell>
                         <TableCell>{tutor.email}</TableCell>
@@ -474,7 +584,9 @@ export default function AddTutor() {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={8} className="text-center text-sm">
-                        No tutors found
+                        {allTutors.length === 0
+                          ? "No tutors found"
+                          : "No tutors match the filters"}
                       </TableCell>
                     </TableRow>
                   )}

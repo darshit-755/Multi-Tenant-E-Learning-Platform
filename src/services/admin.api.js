@@ -26,6 +26,11 @@ export const blockTenantApi = (tenantId) => {
   return API.patch(`/admin/tenants/${tenantId}/block`);
 };
 
+// Delete tenant
+export const deleteTenantApi = (tenantId) => {
+  return API.delete(`/admin/tenants/${tenantId}`);
+};
+
 //get Online Users
 export const getOnlineUsersApi = ()=>{
   return API.get("/admin/online-users");

@@ -8,6 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 import {
   Table,
@@ -40,6 +41,7 @@ const TenantDashboard = () => {
 
   const [selectedDate, setSelectedDate] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
+  const [tutorFilter, setTutorFilter] = useState("");
 
   // Normalize date (remove time)
   const normalizeDate = (date) =>
@@ -84,6 +86,14 @@ const TenantDashboard = () => {
       (a, b) =>
         new Date(a.date) - new Date(b.date),
     );
+  const filteredUpcomingClasses = upcomingClasses;
+  const filteredLatestTutors = latestTutors.filter((tutor) =>
+    !tutorFilter
+      ? true
+      : String(tutor.name || tutor.email || "")
+          .toLowerCase()
+          .includes(tutorFilter.toLowerCase()),
+  );
 
   // Selected day check
   const selectedDay = selectedDate ? normalizeDate(selectedDate) : null;
@@ -152,7 +162,7 @@ const TenantDashboard = () => {
           </CardHeader>
 
           <CardContent>
-            {upcomingClasses.length > 0 ? (
+            {filteredUpcomingClasses.length > 0 ? (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -164,7 +174,7 @@ const TenantDashboard = () => {
                   </TableHeader>
 
                   <TableBody>
-                    {upcomingClasses.map((cls) => (
+                    {filteredUpcomingClasses.map((cls) => (
                       <TableRow key={cls._id}>
                         <TableCell className="capitalize">
                           {cls.topic || "Class Session"}
@@ -219,6 +229,13 @@ const TenantDashboard = () => {
           {isTutorsLoading ? (
             <p className="text-sm text-muted-foreground">Loading tutors...</p>
           ) : (
+            <>
+              <Input
+                placeholder="Filter tutors by name/email"
+                value={tutorFilter}
+                onChange={(e) => setTutorFilter(e.target.value)}
+                className="mb-3"
+              />
             <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -234,8 +251,8 @@ const TenantDashboard = () => {
                 </TableHeader>
 
                 <TableBody>
-                  {latestTutors.length > 0 ? (
-                    latestTutors.map((tutor) => (
+                  {filteredLatestTutors.length > 0 ? (
+                    filteredLatestTutors.map((tutor) => (
                       <TableRow key={tutor._id}>
                         <TableCell>{tutor.name}</TableCell>
                         <TableCell>{tutor.email}</TableCell>
@@ -263,13 +280,16 @@ const TenantDashboard = () => {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center text-sm">
-                        No tutors found
+                        {latestTutors.length === 0
+                          ? "No tutors found"
+                          : "No tutors match the filter"}
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
             </div>
+            </>
           )}
         </CardContent>
       </Card>
