@@ -5,16 +5,23 @@ import { Tenant } from "../models/tenant.model.js";
 import { User } from "../models/user.model.js";
 import { sendTenantMail } from "../services/mail/mail.service.js";
 import { MAIL_TYPES } from "../services/mail/mail.constant.js";
+import { isIndianMobileNumber } from "../utils/phone.js";
 // import crypto from "crypto";
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export const registerTenant = async (req, res) => {
   try {
-    const { tenantName, name, email, password } = req.body;
+    const { tenantName, name, email, password, phone, address } = req.body;
 
-    if (!tenantName || !name || !email || !password) {
+    if (!tenantName || !name || !email || !password || !phone) {
       return res.status(400).json({ message: "All fields required" });
+    }
+
+    if (!isIndianMobileNumber(phone)) {
+      return res.status(400).json({
+        message: "Phone must be a valid 10-digit Indian mobile number",
+      });
     }
 
     const existingUser = await User.findOne({ email });
@@ -28,6 +35,7 @@ export const registerTenant = async (req, res) => {
     const user = await User.create({
       name,
       email,
+      phone,
       passwordHash,
       role: "tenant",
       tenantId: null,
@@ -40,6 +48,7 @@ export const registerTenant = async (req, res) => {
       ownerUserId: user._id,
       status: "inactive",
       plan: "free",
+      ...(address?.trim() ? { address: address.trim() } : {}),
     });
 
     user.tenantId = tenant._id;
@@ -263,7 +272,7 @@ export const resetPassword = async (req, res) => {
 
 export const googleLogin = async (req, res) => {
   try {
-    const { token } = req.body;
+    const { token, phone, address } = req.body;
 
     if (!token) {
       return res.status(400).json({ message: "Token is required" });
@@ -286,10 +295,12 @@ export const googleLogin = async (req, res) => {
     let user = await User.findOne({ email });
 
     if (!user) {
-      // Create new user if doesn't exist
+      // Create new user if doesn't exist – phone & address come from the
+      // Google profile automatically, no extra dialog needed.
       user = await User.create({
         name,
         email,
+        phone: phone || "",
         profileImage: picture,
         role: "tenant",
         tenantId: null,
@@ -305,6 +316,7 @@ export const googleLogin = async (req, res) => {
         ownerUserId: user._id,
         status: "inactive",
         plan: "free",
+        ...(address?.trim() ? { address: address.trim() } : {}),
       });
 
       user.tenantId = tenant._id;

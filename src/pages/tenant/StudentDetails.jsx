@@ -94,8 +94,12 @@ export default function StudentDetails() {
                   <p className="font-medium">{student?.phone || "N/A"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Parent Name</p>
-                  <p className="font-medium">{student?.parentName || "N/A"}</p>
+                  <p className="text-sm text-muted-foreground">Father Name</p>
+                  <p className="font-medium">{student?.fatherName || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Mother Name</p>
+                  <p className="font-medium">{student?.motherName || "N/A"}</p>
                 </div>
               </div>
             </CardContent>

@@ -4,7 +4,7 @@ import { useGetProfile } from "@/hooks/tenant/useGetProfile";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { resolveMediaUrl } from "@/lib/media";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Phone, MapPin } from "lucide-react";
 
 import { useAuth } from "../../contexts/AuthContext";
 import { toast } from "sonner";
@@ -18,6 +18,8 @@ const Profile = () => {
       name: "",
       email: "",
       tenantName: "",
+      phone: "",
+      address: "",
       newPassword: "",
       confirmPassword: "",
     },
@@ -37,6 +39,8 @@ const Profile = () => {
         name: profileUser.name || "",
         email: profileUser.email || "",
         tenantName: profileData?.profile?.tenantName || "",
+        phone: profileUser.phone || "",
+        address: profileData?.profile?.address || "",
         newPassword: "",
         confirmPassword: "",
       });
@@ -68,6 +72,8 @@ const Profile = () => {
     formData.append("name", values.name);
     formData.append("email", values.email);
     formData.append("tenantName", values.tenantName || "");
+    formData.append("phone", values.phone || "");
+    formData.append("address", values.address || "");
 
     if (values.photo?.[0]) {
       formData.append("profileImage", values.photo[0]);
@@ -162,6 +168,40 @@ const Profile = () => {
               {...register("tenantName")}
               className="mt-1 w-full rounded-lg bg-white border border-slate-300 px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
             />
+          </div>
+
+          {/* Phone */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700">
+              Phone Number
+            </label>
+            <div className="relative mt-1">
+              <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="tel"
+                inputMode="numeric"
+                maxLength={10}
+                placeholder="9876543210"
+                {...register("phone")}
+                className="w-full rounded-lg bg-white border border-slate-300 pl-9 pr-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Address */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700">
+              Address
+            </label>
+            <div className="relative mt-1">
+              <MapPin size={16} className="absolute left-3 top-3 text-slate-400" />
+              <textarea
+                rows={2}
+                placeholder="Enter your address"
+                {...register("address")}
+                className="w-full rounded-lg bg-white border border-slate-300 pl-9 pr-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none"
+              />
+            </div>
           </div>
 
           <div>

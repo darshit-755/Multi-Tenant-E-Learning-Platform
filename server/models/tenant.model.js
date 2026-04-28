@@ -30,6 +30,12 @@ const tenantSchema = new Schema(
       default: "free",
     },
 
+    address: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
     statusChangedOnce: {
       type: Boolean,
       default: false,

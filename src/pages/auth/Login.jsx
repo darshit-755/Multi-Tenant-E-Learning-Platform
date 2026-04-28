@@ -45,27 +45,28 @@ export default function Login() {
   const googleLoginMutation = useGoogleLogin();
   const { login } = useAuth();
 
+  const processGoogleLogin = async (payload) => {
+    const response = await googleLoginMutation.mutateAsync(payload);
+
+    if (response?.data?.userStatus === "inactive" || !response?.data?.token) {
+      toast.success("Registration successful! Awaiting admin approval.");
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000);
+      return;
+    }
+
+    login(response?.data?.token, response?.data?.user);
+    toast.success("Google login successful!");
+
+    const userRole = response?.data?.user?.role;
+    redirectByRole(userRole, navigate);
+  };
+
   const handleGoogleLoginSuccess = async (credentialResponse) => {
     try {
       setIsGoogleLoading(true);
-      // console.log("Google Credential Response:", credentialResponse);
-      const response = await googleLoginMutation.mutateAsync(credentialResponse.credential);
-      
-      // Check if user needs approval
-      if (response?.data?.userStatus === "inactive" || !response?.data?.token) {
-        toast.success("Registration successful! Awaiting admin approval.");
-        // Show pending approval message instead of logging in
-        setTimeout(() => {
-          navigate("/login");
-        }, 2000);
-        return;
-      }
-
-      login(response?.data?.token, response?.data?.user);
-      toast.success("Google login successful!");
-      
-      const userRole = response?.data?.user?.role;
-      redirectByRole(userRole, navigate);
+      await processGoogleLogin({ token: credentialResponse.credential });
     } catch (error) {
       toast.error(error.response?.data?.message || "Google login failed");
     } finally {
@@ -275,3 +276,4 @@ export default function Login() {
     </div>
   );
 }
+

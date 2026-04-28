@@ -97,12 +97,13 @@ export const getMyVideoProgress = async () => {
   }
 };
 
-export const saveMyVideoProgress = async ({ classId, videoKey, percent }) => {
+export const saveMyVideoProgress = async ({ classId, videoKey, percent, attendanceMarked }) => {
   try {
     const response = await API.post("/attendance/video-progress", {
       classId,
       videoKey,
       percent,
+      attendanceMarked,
     });
     return response.data;
   } catch (error) {

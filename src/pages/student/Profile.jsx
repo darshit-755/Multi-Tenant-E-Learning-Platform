@@ -31,7 +31,8 @@ const Profile = () => {
       classLevel: "",
       board: "",
       phone: "",
-      parentName: "",
+      fatherName: "",
+      motherName: "",
       newPassword: "",
       confirmPassword: "",
     },
@@ -42,10 +43,10 @@ const Profile = () => {
   const [preview, setPreview] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const profileUser = profileData?.user || user;
+  const previewSrc = preview || resolveMediaUrl(profileUser?.profileImage);
 
   useEffect(() => {
-    const profileUser = profileData?.user || user;
-
     if (profileUser) {
       reset({
         name: profileUser.name || "",
@@ -54,15 +55,13 @@ const Profile = () => {
         classLevel: profileData?.profile?.classLevel || "",
         board: profileData?.profile?.board || "",
         phone: normalizeIndianMobileNumber(profileData?.profile?.phone || ""),
-        parentName: profileData?.profile?.parentName || "",
+        fatherName: profileData?.profile?.fatherName || "",
+        motherName: profileData?.profile?.motherName || "",
         newPassword: "",
         confirmPassword: "",
       });
-      setPreview(
-        resolveMediaUrl(profileUser?.profileImage)
-      );
     }
-  }, [profileData, user, reset]);
+  }, [profileData, profileUser, reset, user]);
 
   const onSubmit = async (values) => {
     const hasPasswordInput = values.newPassword || values.confirmPassword;
@@ -91,7 +90,8 @@ const Profile = () => {
     if (values.phone) {
       formData.append("phone", values.phone);
     }
-    formData.append("parentName", values.parentName || "");
+    formData.append("fatherName", values.fatherName || "");
+    formData.append("motherName", values.motherName || "");
 
     if (values.photo?.[0]) {
       formData.append("profileImage", values.photo[0]);
@@ -132,7 +132,7 @@ const Profile = () => {
         {/* Avatar */}
         <div className="flex flex-col items-center mb-6">
           <img
-            src={preview}
+            src={previewSrc}
             alt="Profile"
             className="w-28 h-28 rounded-full object-cover border-4 border-slate-300 shadow"
           />
@@ -231,10 +231,20 @@ const Profile = () => {
 
           <div>
             <label className="block text-sm font-medium text-slate-700">
-              Parent Name
+              Father Name
             </label>
             <input
-              {...register("parentName")}
+              {...register("fatherName")}
+              className="mt-1 w-full rounded-lg bg-white border border-slate-300 px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700">
+              Mother Name
+            </label>
+            <input
+              {...register("motherName")}
               className="mt-1 w-full rounded-lg bg-white border border-slate-300 px-3 py-2 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
             />
           </div>

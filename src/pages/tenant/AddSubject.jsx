@@ -21,11 +21,39 @@ import { useUpdateSubject } from "@/hooks/tenant/useUpdateSubject";
 
 import { toast } from "sonner";
 
+const SUBJECT_NAME_OPTIONS = [
+  "English",
+  "Hindi",
+  "Mathematics",
+  "Environmental Studies",
+  "General Knowledge",
+  "Computer",
+  "Science",
+  "Social Science",
+  "Sanskrit",
+  "Physics",
+  "Chemistry",
+  "Biology",
+  "History",
+  "Geography",
+  "Civics",
+  "Economics",
+  "Political Science",
+  "Accountancy",
+  "Business Studies",
+  "Statistics",
+  "Informatics Practices",
+  "Computer Science",
+  "Physical Education",
+];
+
 export default function AddSubject() {
   const { mutateAsync: createSubject, isPending: isCreating } = useCreateSubject();
   const { mutateAsync: updateSubject, isPending: isUpdating } = useUpdateSubject();
   const { data: subjectsData, isLoading } = useGetSubjects();
   const [editingSubject, setEditingSubject] = useState(null);
+  const [subjectQuery, setSubjectQuery] = useState("");
+  const [showSubjectOptions, setShowSubjectOptions] = useState(false);
   const ALL_VALUE = "__all";
   const [filters, setFilters] = useState({
     name: "",
@@ -37,12 +65,17 @@ export default function AddSubject() {
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors },
   } = useForm({
     defaultValues: {},
   });
 
   const isEditMode = Boolean(editingSubject);
+  const selectedSubjectName = watch("name");
+  const filteredSubjectOptions = SUBJECT_NAME_OPTIONS.filter((subjectName) =>
+    subjectName.toLowerCase().includes(String(subjectQuery || "").toLowerCase()),
+  );
 
   const onSubmit = async (data) => {
     const payload = {
@@ -61,6 +94,7 @@ export default function AddSubject() {
       toast.success(
         isEditMode ? "Subject updated successfully!" : "Subject created successfully!",
       );
+      setSubjectQuery("");
       reset({ name: "", description: "" });
       setEditingSubject(null);
     }
@@ -68,6 +102,7 @@ export default function AddSubject() {
 
   const handleEdit = (subject) => {
     setEditingSubject(subject);
+    setSubjectQuery(subject.name || "");
     reset({
       name: subject.name || "",
       description: subject.description || "",
@@ -76,6 +111,7 @@ export default function AddSubject() {
 
   const handleCancelEdit = () => {
     setEditingSubject(null);
+    setSubjectQuery("");
     reset({ name: "", description: "" });
   };
 
@@ -113,11 +149,51 @@ export default function AddSubject() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div>
               <Label>Subject Name</Label>
-              <Input
-                placeholder="e.g. Mathematics"
-                className="mt-1"
-                {...register("name", { required: "Subject name is required" })}
-              />
+              <div className="relative mt-1">
+                <Input
+                  placeholder="Select or type subject name"
+                  value={subjectQuery}
+                  onFocus={() => setShowSubjectOptions(true)}
+                  onBlur={() => setTimeout(() => setShowSubjectOptions(false), 150)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSubjectQuery(value);
+                    setValue("name", value, { shouldValidate: true });
+                    setShowSubjectOptions(true);
+                  }}
+                />
+                <input
+                  type="hidden"
+                  {...register("name", { required: "Subject name is required" })}
+                />
+                {showSubjectOptions && (
+                  <div className="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-md border bg-white shadow-md">
+                    {filteredSubjectOptions.length > 0 ? (
+                      filteredSubjectOptions.map((subjectName) => (
+                        <button
+                          key={subjectName}
+                          type="button"
+                          className={`block w-full px-3 py-2 text-left text-sm hover:bg-slate-100 ${
+                            selectedSubjectName === subjectName ? "bg-slate-100" : ""
+                          }`}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            setSubjectQuery(subjectName);
+                            setValue("name", subjectName, { shouldValidate: true });
+                            setShowSubjectOptions(false);
+                          }}
+                        >
+                          {subjectName}
+                        </button>
+                      ))
+                    ) : (
+                      <p className="px-3 py-2 text-sm text-muted-foreground">
+                        No subject found
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
               {errors.name && (
                 <p className="text-xs text-red-500 mt-1">{errors.name.message}</p>
               )}

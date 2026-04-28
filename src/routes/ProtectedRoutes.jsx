@@ -16,7 +16,7 @@ const ProtectedRoute = ({ allowedRoles }) => {
     return <Navigate to="/unauthorized" replace />;
   }
 
-  // Check if user is blocked
+  // Check if user is suspended (backend stores as "blocked")
   if (user.status === "blocked") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-4">
@@ -28,9 +28,9 @@ const ProtectedRoute = ({ allowedRoles }) => {
                   <path fillRule="evenodd" d="M4.47 4.47a.75.75 0 011.06 0L10 8.94l4.47-4.47a.75.75 0 111.06 1.06L11.06 10l4.47 4.47a.75.75 0 11-1.06 1.06L10 11.06l-4.47 4.47a.75.75 0 01-1.06-1.06L8.94 10 4.47 5.53a.75.75 0 010-1.06z" clipRule="evenodd" />
                 </svg>
               </div>
-              <h2 className="text-2xl font-semibold">Account Blocked</h2>
+              <h2 className="text-2xl font-semibold">Account Suspended</h2>
               <p className="text-slate-400">
-                Your account has been blocked and you no longer have access to the dashboard.
+                Your account has been suspended and you no longer have access to the dashboard.
               </p>
               <p className="text-sm text-slate-500">
                 If you believe this is a mistake, please contact the administrator.

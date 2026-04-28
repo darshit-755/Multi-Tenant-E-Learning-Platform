@@ -3,6 +3,7 @@ import { Class } from "../models/class.model.js";
 import { Batch } from "../models/batch.model.js";
 import { Student } from "../models/student.model.js";
 import { Tutor } from "../models/tutor.model.js";
+import { VideoProgress } from "../models/videoProgress.model.js";
 import { recordAttendanceEvent } from "../services/attendanceTracking.service.js";
 
 const buildStudentAttendancePayload = async (studentId, tenantId) => {
@@ -544,7 +545,7 @@ export const markVideoAttendance = async (req, res) => {
       });
     }
 
-    // Upsert attendance as present
+    // Upsert attendance as present (no videoProgress here — stored in VideoProgress model)
     const attendance = await Attendance.findOneAndUpdate(
       { classId, studentId: student._id, tenantId },
       {
@@ -556,8 +557,6 @@ export const markVideoAttendance = async (req, res) => {
         isProgressOnly: false,
         presenceSource: "system",
         trackingProvider: "video",
-        videoProgress: existing?.videoProgress || {},
-        videoMaxProgress: existing?.videoMaxProgress || 0,
         notes: "Auto-marked: 75% video watched",
         markedAt: new Date(),
       },
@@ -592,28 +591,44 @@ export const getMyVideoProgress = async (req, res) => {
       return res.status(404).json({ message: "Student profile not found" });
     }
 
-    const progress = await Attendance.find({
+    const progressRecords = await VideoProgress.find({
       studentId: student._id,
       tenantId,
-      $or: [
-        { videoMaxProgress: { $gt: 0 } },
-        { videoProgress: { $exists: true, $ne: {} } },
-      ],
-    })
-      .select("classId videoProgress videoMaxProgress present markedAt updatedAt trackingProvider isProgressOnly")
-      .sort({ updatedAt: -1 });
+    }).sort({ updatedAt: -1 });
+
+    // Also check if attendance was marked for these classes
+    const classIds = progressRecords.map((r) => r.classId);
+    const attendanceRecords = await Attendance.find({
+      studentId: student._id,
+      tenantId,
+      classId: { $in: classIds },
+      isProgressOnly: { $ne: true },
+    }).select("classId present markedAt");
+
+    const attendanceMap = attendanceRecords.reduce((acc, record) => {
+      acc[String(record.classId)] = {
+        present: record.present,
+        markedAt: record.markedAt,
+      };
+      return acc;
+    }, {});
 
     return res.status(200).json({
       student: student._id,
-      progress: progress.map((record) => ({
-        _id: record._id,
-        classId: String(record.classId),
-        videos: record.videoProgress || {},
-        maxProgress: record.videoMaxProgress || 0,
-        attendanceMarked: Boolean(record.present),
-        markedAt: record.markedAt,
-        updatedAt: record.updatedAt,
-      })),
+      progress: progressRecords.map((record) => {
+        const plain = record.toObject();
+        const classIdStr = String(plain.classId);
+        const att = attendanceMap[classIdStr];
+        return {
+          _id: plain._id,
+          classId: classIdStr,
+          videos: plain.videos || {},
+          maxProgress: plain.maxProgress || 0,
+          attendanceMarked: Boolean(att?.present),
+          markedAt: att?.markedAt || null,
+          updatedAt: plain.updatedAt,
+        };
+      }),
     });
   } catch (error) {
     return res.status(500).json({
@@ -626,7 +641,7 @@ export const getMyVideoProgress = async (req, res) => {
 // Save per-video progress for the logged in student
 export const upsertMyVideoProgress = async (req, res) => {
   try {
-    const { classId, videoKey, percent } = req.body;
+    const { classId, videoKey, percent, attendanceMarked } = req.body;
     const tenantId = req.user.tenantId;
     const userId = req.user.id || req.user._id;
 
@@ -656,15 +671,15 @@ export const upsertMyVideoProgress = async (req, res) => {
       return res.status(403).json({ message: "You are not enrolled in this class" });
     }
 
-    const existing = await Attendance.findOne({
+    // Find existing progress in the new VideoProgress model
+    const existing = await VideoProgress.findOne({
       classId,
       studentId: student._id,
       tenantId,
-      trackingProvider: "video",
     });
 
-    const existingVideos = existing?.videoProgress && typeof existing.videoProgress === "object"
-      ? { ...existing.videoProgress }
+    const existingVideos = existing?.videos
+      ? JSON.parse(JSON.stringify(existing.videos))
       : {};
     const currentVideoPercent = Number(existingVideos[videoKey] || 0);
     const nextPercent = Math.max(0, Math.min(100, Number(percent) || 0));
@@ -675,35 +690,37 @@ export const upsertMyVideoProgress = async (req, res) => {
 
     const maxProgress = Math.max(0, ...Object.values(existingVideos).map((value) => Number(value) || 0));
 
-    const attendance = await Attendance.findOneAndUpdate(
-      { classId, studentId: student._id, tenantId, trackingProvider: "video" },
+    // Upsert into VideoProgress model
+    const progressDoc = await VideoProgress.findOneAndUpdate(
+      { classId, studentId: student._id, tenantId },
       {
-        tenantId,
         classId,
         studentId: student._id,
-        tutorId: classRecord.teacherId,
-        present: existing?.present || false,
-        isProgressOnly: !existing?.present,
-        presenceSource: existing?.present ? existing.presenceSource || "system" : "system",
-        trackingProvider: existing?.trackingProvider || "video",
-        videoProgress: existingVideos,
-        videoMaxProgress: maxProgress,
-        isProgressOnly: existing?.present ? false : existing?.isProgressOnly ?? !existing,
-        markedAt: existing?.markedAt || new Date(),
+        tenantId,
+        videos: existingVideos,
+        maxProgress,
       },
-        { upsert: true, new: true, runValidators: true }
+      { upsert: true, new: true, runValidators: true }
     );
+
+    // Check attendance status
+    const attendance = await Attendance.findOne({
+      classId,
+      studentId: student._id,
+      tenantId,
+      isProgressOnly: { $ne: true },
+    }).select("present markedAt");
 
     return res.status(200).json({
       message: "Video progress saved",
       progress: {
-        _id: attendance._id,
-        classId: String(attendance.classId),
-        videos: attendance.videoProgress || {},
-        maxProgress: attendance.videoMaxProgress || 0,
-        attendanceMarked: Boolean(attendance.present),
-        markedAt: attendance.markedAt,
-        updatedAt: attendance.updatedAt,
+        _id: progressDoc._id,
+        classId: String(progressDoc.classId),
+        videos: progressDoc.videos || {},
+        maxProgress: progressDoc.maxProgress || 0,
+        attendanceMarked: Boolean(attendance?.present),
+        markedAt: attendance?.markedAt || null,
+        updatedAt: progressDoc.updatedAt,
       },
     });
   } catch (error) {

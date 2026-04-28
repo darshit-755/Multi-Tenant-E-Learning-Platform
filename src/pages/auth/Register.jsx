@@ -1,20 +1,49 @@
 import { useForm, useWatch } from "react-hook-form";
 import { Link } from "react-router-dom";
 import { useRegister } from "@/hooks/auth/useAuthMutations";
+import { GoogleLogin } from "@react-oauth/google";
+import { useGoogleLogin } from "@/hooks/auth/useGoogleLogin";
+import { useAuth } from "@/contexts/AuthContext";
+import { redirectByRole } from "@/utils/roleRedirect";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Phone, MapPin } from "lucide-react";
 import { useState } from "react";
+import {
+  handleIndianMobileInput,
+  validateIndianMobileNumber,
+} from "@/lib/phone";
 
 export default function Register() {
   const navigate = useNavigate();
+  const hasGoogleClientId = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const googleLoginMutation = useGoogleLogin();
+  const { login } = useAuth();
+
+  // Google popup dialog state
+  const [googleDialogOpen, setGoogleDialogOpen] = useState(false);
+  const [googleCredential, setGoogleCredential] = useState(null);
+  const [googlePhone, setGooglePhone] = useState("");
+  const [googleAddress, setGoogleAddress] = useState("");
+  const [googlePhoneError, setGooglePhoneError] = useState("");
+
   const {
     register,
     handleSubmit,
@@ -47,6 +76,59 @@ export default function Register() {
         toast.error(err.response?.data?.message || "Registration failed");
       },
     });
+  };
+
+  // Step 1: Google returns credential → open popup dialog
+  const handleGoogleSignup = (credentialResponse) => {
+    setGoogleCredential(credentialResponse.credential);
+    setGooglePhone("");
+    setGoogleAddress("");
+    setGooglePhoneError("");
+    setGoogleDialogOpen(true);
+  };
+
+  // Step 2: User fills phone & address in dialog → complete registration
+  const handleGoogleDialogSubmit = async () => {
+    // Validate phone
+    if (!googlePhone.trim()) {
+      setGooglePhoneError("Phone number is required");
+      return;
+    }
+    const phoneValidation = validateIndianMobileNumber(googlePhone);
+    if (phoneValidation !== true) {
+      setGooglePhoneError(phoneValidation);
+      return;
+    }
+    setGooglePhoneError("");
+
+    try {
+      setIsGoogleLoading(true);
+      setGoogleDialogOpen(false);
+
+      const response = await googleLoginMutation.mutateAsync({
+        token: googleCredential,
+        phone: googlePhone,
+        address: googleAddress || undefined,
+      });
+
+      if (response?.data?.userStatus === "inactive" || !response?.data?.token) {
+        toast.success("Registration successful! Awaiting admin approval.");
+        setTimeout(() => {
+          navigate("/login");
+        }, 2000);
+        return;
+      }
+
+      login(response?.data?.token, response?.data?.user);
+      toast.success("Google signup successful!");
+      const userRole = response?.data?.user?.role;
+      redirectByRole(userRole, navigate);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Google signup failed");
+    } finally {
+      setIsGoogleLoading(false);
+      setGoogleCredential(null);
+    }
   };
 
   return (
@@ -114,6 +196,28 @@ export default function Register() {
               />
               {errors.email && (
                 <p className="text-red-500 text-sm">{errors.email.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                type="tel"
+                inputMode="numeric"
+                maxLength={10}
+                placeholder="9876543210"
+                className={`bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500
+                  focus-visible:ring-2 focus-visible:ring-slate-500
+                  ${errors.phone ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                {...register("phone", {
+                  required: "Phone number is required",
+                  validate: validateIndianMobileNumber,
+                  onChange: handleIndianMobileInput,
+                })}
+              />
+              {errors.phone && (
+                <p className="text-red-500 text-sm">{errors.phone.message}</p>
               )}
             </div>
 
@@ -216,7 +320,34 @@ export default function Register() {
               {registerMutation.isPending ? "Registering..." : "Register"}
             </Button>
           </form>
-          
+
+          {/* Divider */}
+          <div className="flex items-center gap-3 my-6">
+            <div className="flex-1 h-px bg-slate-700"></div>
+            <span className="text-xs text-slate-400">OR</span>
+            <div className="flex-1 h-px bg-slate-700"></div>
+          </div>
+
+          {/* Google Signup Button */}
+          <div className="flex flex-col items-center gap-2">
+            {hasGoogleClientId ? (
+              <GoogleLogin
+                onSuccess={handleGoogleSignup}
+                onError={() => toast.error("Google signup failed")}
+                theme="dark"
+                size="large"
+                text="signup_with"
+              />
+            ) : (
+              <p className="text-xs text-amber-300 text-center">
+                Google signup is not configured. Add VITE_GOOGLE_CLIENT_ID in Client/.env.
+              </p>
+            )}
+            {isGoogleLoading && (
+              <p className="text-xs text-slate-400">Signing up with Google...</p>
+            )}
+          </div>
+
           <p className="text-center text-sm text-gray-600 mt-4">
             Already have an account?{" "}
             <Link to="/login" className="text-blue-600 hover:underline">
@@ -225,6 +356,88 @@ export default function Register() {
           </p>
         </CardContent>
       </Card>
+
+      {/* Google Signup – Phone & Address Dialog */}
+      <Dialog open={googleDialogOpen} onOpenChange={(open) => {
+        setGoogleDialogOpen(open);
+        if (!open) setGoogleCredential(null);
+      }}>
+        <DialogContent className="sm:max-w-md bg-slate-900/95 backdrop-blur border border-slate-800 text-slate-100 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-center">
+              Complete Your Registration
+            </DialogTitle>
+            <DialogDescription className="text-slate-400 text-center text-sm">
+              Please provide your phone number to finish signing up
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-4">
+            {/* Phone Number (required) */}
+            <div className="space-y-2">
+              <Label htmlFor="google-phone" className="flex items-center gap-2">
+                <Phone size={14} className="text-slate-400" />
+                Phone Number <span className="text-red-400">*</span>
+              </Label>
+              <Input
+                id="google-phone"
+                type="tel"
+                inputMode="numeric"
+                maxLength={10}
+                placeholder="9876543210"
+                value={googlePhone}
+                onChange={(e) => {
+                  const cleaned = e.target.value.replace(/\D/g, "").slice(0, 10);
+                  setGooglePhone(cleaned);
+                  if (googlePhoneError) setGooglePhoneError("");
+                }}
+                className={`bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500
+                  focus-visible:ring-2 focus-visible:ring-slate-500
+                  ${googlePhoneError ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+              />
+              {googlePhoneError && (
+                <p className="text-red-500 text-sm">{googlePhoneError}</p>
+              )}
+            </div>
+
+            {/* Address (optional) */}
+            <div className="space-y-2">
+              <Label htmlFor="google-address" className="flex items-center gap-2">
+                <MapPin size={14} className="text-slate-400" />
+                Address <span className="text-slate-500 text-xs font-normal">(optional)</span>
+              </Label>
+              <Input
+                id="google-address"
+                type="text"
+                placeholder="Your address"
+                value={googleAddress}
+                onChange={(e) => setGoogleAddress(e.target.value)}
+                className="bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500
+                  focus-visible:ring-2 focus-visible:ring-slate-500"
+              />
+            </div>
+
+            <Button
+              onClick={handleGoogleDialogSubmit}
+              disabled={isGoogleLoading}
+              className="w-full bg-slate-100 mt-2 text-slate-900 hover:bg-slate-200 font-medium transition"
+            >
+              {isGoogleLoading ? "Signing up..." : "Continue"}
+            </Button>
+          </div>
+
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button
+                variant="ghost"
+                className="text-slate-400 hover:text-black w-full"
+              >
+                Cancel
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

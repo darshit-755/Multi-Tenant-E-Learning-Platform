@@ -37,11 +37,15 @@ import {
 
 import { toast } from "sonner";
 
+const CLASS_LEVEL_OPTIONS = Array.from({ length: 12 }, (_, index) =>
+  String(index + 1),
+);
+const BOARD_OPTIONS = ["CBSC", "NCERT", "State Board", "Other"];
+
 export default function AddStudent() {
   const location = useLocation();
   const navigate = useNavigate();
   const { studentId } = useParams();
-  const isAddPage = location.pathname === "/tenant/students/add";
   const isViewPage = location.pathname === "/tenant/students/view";
   const isEditPage = Boolean(studentId);
   const { mutateAsync: createStudent, isPending: isCreating } =
@@ -54,6 +58,8 @@ export default function AddStudent() {
   const [deleteStudentId, setDeleteStudentId] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [classLevelQuery, setClassLevelQuery] = useState("");
+  const [showClassLevelOptions, setShowClassLevelOptions] = useState(false);
   const ALL_VALUE = "__all";
   const [filters, setFilters] = useState({
     name: "",
@@ -72,6 +78,12 @@ export default function AddStudent() {
     formState: { errors },
   } = useForm();
   const statusValue = watch("status");
+  const classLevelValue = watch("classLevel");
+  const boardValue = watch("board");
+  const isOtherBoardSelected = boardValue === "Other";
+  const filteredClassLevelOptions = CLASS_LEVEL_OPTIONS.filter((level) =>
+    level.toLowerCase().includes(String(classLevelQuery || "").toLowerCase()),
+  );
 
   const handleDelete = (id) => {
     setDeleteStudentId(id);
@@ -95,9 +107,10 @@ export default function AddStudent() {
         email: data.email,
         rollNumber: data.rollNumber,
         classLevel: data.classLevel,
-        board: data.board,
+        board: data.board === "Other" ? data.otherBoard : data.board,
         phone: data.phone,
-        parentName: data.parentName,
+        fatherName: data.fatherName,
+        motherName: data.motherName,
         status: data.status,
       };
       if (String(data.password || "").trim()) {
@@ -110,6 +123,7 @@ export default function AddStudent() {
       if (res) {
         toast.success("Student updated successfully!");
         setEditingStudent(null);
+        setClassLevelQuery("");
         reset();
         navigate("/tenant/students/view");
       }
@@ -118,9 +132,12 @@ export default function AddStudent() {
 
     const { confirmPassword: _confirmPassword, ...payload } = data;
 
+    payload.board = data.board === "Other" ? data.otherBoard : data.board;
+
     const res = await createStudent(payload);
     if (res) {
       toast.success("Student created successfully!");
+      setClassLevelQuery("");
       reset();
     }
   };
@@ -131,6 +148,7 @@ export default function AddStudent() {
 
   const handleCancelEdit = () => {
     setEditingStudent(null);
+    setClassLevelQuery("");
     reset();
     if (isEditPage) {
       navigate("/tenant/students/view");
@@ -148,9 +166,17 @@ export default function AddStudent() {
     setValue("password", "");
     setValue("rollNumber", student.rollNumber || "");
     setValue("classLevel", student.classLevel || "");
-    setValue("board", student.board || "");
+    setClassLevelQuery(student.classLevel || "");
+    if (BOARD_OPTIONS.includes(student.board)) {
+      setValue("board", student.board || "");
+      setValue("otherBoard", "");
+    } else {
+      setValue("board", student.board ? "Other" : "");
+      setValue("otherBoard", student.board || "");
+    }
     setValue("phone", normalizeIndianMobileNumber(student.phone || ""));
-    setValue("parentName", student.parentName || "");
+    setValue("fatherName", student.fatherName || "");
+    setValue("motherName", student.motherName || "");
     setValue("status", student.status || "active");
   }, [isEditPage, students, studentId, setValue]);
 
@@ -297,13 +323,55 @@ export default function AddStudent() {
 
             <div>
               <Label>Class Level</Label>
-              <Input
-                placeholder="e.g. 10"
-                className="mt-1"
-                {...register("classLevel", {
-                  required: "Class level is required",
-                })}
-              />
+              <div className="relative mt-1">
+                <Input
+                  placeholder="Select or type class level"
+                  value={classLevelQuery}
+                  onFocus={() => setShowClassLevelOptions(true)}
+                  onBlur={() =>
+                    setTimeout(() => setShowClassLevelOptions(false), 150)
+                  }
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setClassLevelQuery(value);
+                    setValue("classLevel", value, { shouldValidate: true });
+                    setShowClassLevelOptions(true);
+                  }}
+                />
+                <input
+                  type="hidden"
+                  {...register("classLevel", {
+                    required: "Class level is required",
+                  })}
+                />
+                {showClassLevelOptions && (
+                  <div className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-white shadow-md">
+                    {filteredClassLevelOptions.length > 0 ? (
+                      filteredClassLevelOptions.map((level) => (
+                        <button
+                          key={level}
+                          type="button"
+                          className={`block w-full px-3 py-2 text-left text-sm hover:bg-slate-100 ${
+                            classLevelValue === level ? "bg-slate-100" : ""
+                          }`}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            setClassLevelQuery(level);
+                            setValue("classLevel", level, { shouldValidate: true });
+                            setShowClassLevelOptions(false);
+                          }}
+                        >
+                          {level}
+                        </button>
+                      ))
+                    ) : (
+                      <p className="px-3 py-2 text-sm text-muted-foreground">
+                        No class level found
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
               {errors.classLevel && (
                 <p className="text-xs text-red-500 mt-1">
                   {errors.classLevel.message}
@@ -313,14 +381,50 @@ export default function AddStudent() {
 
             <div>
               <Label>Board</Label>
-              <Input
-                placeholder="e.g. CBSE"
-                className="mt-1"
+              <Select
+                value={boardValue || ""}
+                onValueChange={(value) => {
+                  setValue("board", value, { shouldValidate: true });
+                  if (value !== "Other") {
+                    setValue("otherBoard", "", { shouldValidate: false });
+                  }
+                }}
+              >
+                <SelectTrigger className="mt-1 w-full">
+                  <SelectValue placeholder="Select board" />
+                </SelectTrigger>
+                <SelectContent>
+                  {BOARD_OPTIONS.map((board) => (
+                    <SelectItem key={board} value={board}>
+                      {board}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <input
+                type="hidden"
                 {...register("board", { required: "Board is required" })}
               />
+              {isOtherBoardSelected && (
+                <Input
+                  placeholder="Enter board name"
+                  className="mt-3"
+                  {...register("otherBoard", {
+                    validate: (value) =>
+                      boardValue !== "Other" ||
+                      !!String(value || "").trim() ||
+                      "Board name is required",
+                  })}
+                />
+              )}
               {errors.board && (
                 <p className="text-xs text-red-500 mt-1">
                   {errors.board.message}
+                </p>
+              )}
+              {errors.otherBoard && (
+                <p className="text-xs text-red-500 mt-1">
+                  {errors.otherBoard.message}
                 </p>
               )}
             </div>
@@ -348,20 +452,34 @@ export default function AddStudent() {
               )}
             </div>
 
-            <div>
-              <Label>Parent Name</Label>
-              <Input
-                placeholder="Parent full name"
-                className="mt-1"
-                {...register("parentName", {
-                  required: "Parent name is required",
-                })}
-              />
-              {errors.parentName && (
-                <p className="text-xs text-red-500 mt-1">
-                  {errors.parentName.message}
-                </p>
-              )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Father Name</Label>
+                <Input
+                  placeholder="Father name"
+                  className="mt-1"
+                  {...register("fatherName")}
+                />
+                {errors.fatherName && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.fatherName.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <Label>Mother Name</Label>
+                <Input
+                  placeholder="Mother name"
+                  className="mt-1"
+                  {...register("motherName")}
+                />
+                {errors.motherName && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.motherName.message}
+                  </p>
+                )}
+              </div>
             </div>
 
             {isEditMode && (
@@ -471,7 +589,8 @@ export default function AddStudent() {
                     <TableHead>Class</TableHead>
                     <TableHead>Board</TableHead>
                     <TableHead>Phone</TableHead>
-                    <TableHead>Parent</TableHead>
+                    <TableHead>Father</TableHead>
+                    <TableHead>Mother</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created At</TableHead>
                     <TableHead>Actions</TableHead>
@@ -492,7 +611,8 @@ export default function AddStudent() {
                         <TableCell>{student.classLevel || "-"}</TableCell>
                         <TableCell>{student.board || "-"}</TableCell>
                         <TableCell>{student.phone || "-"}</TableCell>
-                        <TableCell>{student.parentName || "-"}</TableCell>
+                        <TableCell>{student.fatherName || "-"}</TableCell>
+                        <TableCell>{student.motherName || "-"}</TableCell>
 
                         {/* Status Badge */}
                         <TableCell>
@@ -541,7 +661,7 @@ export default function AddStudent() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center text-sm">
+                      <TableCell colSpan={11} className="text-center text-sm">
                         {allStudents.length === 0
                           ? "No students found"
                           : "No students match the filters"}

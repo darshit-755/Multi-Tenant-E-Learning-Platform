@@ -37,7 +37,11 @@ const studentSchema = new Schema(
         "Phone must be a valid 10-digit Indian mobile number",
       ],
     },
-    parentName: {
+    fatherName: {
+      type: String,
+      trim: true,
+    },
+    motherName: {
       type: String,
       trim: true,
     },

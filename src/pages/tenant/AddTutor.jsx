@@ -158,6 +158,8 @@ export default function AddTutor() {
     (subject) => subject.status === "active",
   ), [subjects]);
   const subjectsForSelect = isEditMode ? subjects : activeSubjects;
+  const hasSubjectsForTutor = subjectsForSelect.length > 0;
+  const preselectedSubjectId = location.state?.preselectedSubjectId || "";
 
   useEffect(() => {
     if (!isEditPage) return;
@@ -193,6 +195,18 @@ export default function AddTutor() {
 
 
   }, [isEditPage, tutors, subjects, tutorId, setValue]);
+
+  useEffect(() => {
+    if (isEditPage || !preselectedSubjectId || !subjectsForSelect.length) return;
+
+    const matchedSubject = subjectsForSelect.find(
+      (subject) => subject._id === preselectedSubjectId,
+    );
+
+    if (matchedSubject) {
+      setValue("subjectId", matchedSubject._id, { shouldValidate: true });
+    }
+  }, [isEditPage, preselectedSubjectId, subjectsForSelect, setValue]);
 
   const allTutors = tutors?.tutors || [];
   const filteredTutors = allTutors.filter((tutor) => {
@@ -320,6 +334,21 @@ export default function AddTutor() {
               {/* Subjects */}
               <div>
                 <Label>Subjects</Label>
+                {!hasSubjectsForTutor && (
+                  <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-3">
+                    <p className="text-sm font-medium text-amber-900">
+                      NO SUBJECT IS AVAILABLE
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="mt-3"
+                      onClick={() => navigate("/tenant/add-subject")}
+                    >
+                      Add Subject
+                    </Button>
+                  </div>
+                )}
                 <Controller
                   key={editingTutor?._id || "new"}
                   name="subjectId"

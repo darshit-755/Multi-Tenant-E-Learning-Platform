@@ -201,7 +201,7 @@ export default function Tenants() {
                     <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="blocked">Blocked</SelectItem>
+                    <SelectItem value="blocked">Suspended</SelectItem>
                   </SelectContent>
                 </Select>
               )}
@@ -275,7 +275,7 @@ export default function Tenants() {
                                   : "bg-red-100 text-red-800"
                               }`}
                           >
-                            {tenant.status}
+                            {tenant.status === "blocked" ? "Suspended" : tenant.status}
                           </span>
                         </TableCell>
 
@@ -288,7 +288,7 @@ export default function Tenants() {
                                 size="sm"
                                 disabled={isActionLoading}
                               >
-                                {tenant.status}
+                                {tenant.status === "blocked" ? "Suspended" : tenant.status}
                               </Button>
                             </DropdownMenuTrigger>
 

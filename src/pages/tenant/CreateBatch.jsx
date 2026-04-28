@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
@@ -44,7 +44,6 @@ export default function CreateBatch() {
   const location = useLocation();
   const navigate = useNavigate();
   const { batchId } = useParams();
-  const isAddPage = location.pathname === "/tenant/batches/add";
   const isViewPage = location.pathname === "/tenant/batches/view";
   const isEditPage = Boolean(batchId);
   const { mutateAsync: createBatch, isPending: isCreating } = useCreateBatch();
@@ -62,11 +61,9 @@ export default function CreateBatch() {
     formState: { errors },
   } = useForm();
 
-  const [selectedSubjectId, setSelectedSubjectId] = useState("");
-  const [selectedTeacherId, setSelectedTeacherId] = useState("");
-  const [editingBatch, setEditingBatch] = useState(null);
-
-  const [selectedStudents, setSelectedStudents] = useState([]);
+  const [selectedSubjectIdState, setSelectedSubjectId] = useState(null);
+  const [selectedTeacherIdState, setSelectedTeacherId] = useState(null);
+  const [selectedStudentsState, setSelectedStudents] = useState(null);
   const [showStudentDropdown, setShowStudentDropdown] = useState(false);
   const ALL_VALUE = "__all";
   const [filters, setFilters] = useState({
@@ -91,10 +88,31 @@ export default function CreateBatch() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const subjects = subjectsData?.subjects || [];
-  const tutors = tutorsData?.tutors || [];
-  const students = studentsData?.students || [];
-  const batches = batchesData?.batches || [];
+  const subjects = useMemo(() => subjectsData?.subjects || [], [subjectsData]);
+  const tutors = useMemo(() => tutorsData?.tutors || [], [tutorsData]);
+  const students = useMemo(() => studentsData?.students || [], [studentsData]);
+  const batches = useMemo(() => batchesData?.batches || [], [batchesData]);
+  const editingBatch = useMemo(
+    () => (isEditPage ? batches.find((item) => item._id === batchId) || null : null),
+    [isEditPage, batches, batchId],
+  );
+  const prefilledSubjectId =
+    editingBatch?.subjectId?._id || editingBatch?.subjectId || "";
+  const prefilledTeacherId =
+    editingBatch?.teacherId?.tutorId ||
+    editingBatch?.teacherId?._id ||
+    editingBatch?.teacherId ||
+    "";
+  const prefilledStudentIds = useMemo(
+    () =>
+      (editingBatch?.studentIds || [])
+        .map((student) => student.studentId || student._id || student)
+        .filter(Boolean),
+    [editingBatch],
+  );
+  const selectedSubjectId = selectedSubjectIdState ?? prefilledSubjectId;
+  const selectedTeacherId = selectedTeacherIdState ?? prefilledTeacherId;
+  const selectedStudents = selectedStudentsState ?? prefilledStudentIds;
 
   const getStudentId = (student) =>
     student?.studentId || student?._id || student?.id || "";
@@ -106,9 +124,10 @@ export default function CreateBatch() {
 
   const toggleStudent = (studentIdValue) => {
     setSelectedStudents((prev) => {
-      const next = prev.includes(studentIdValue)
-        ? prev.filter((id) => id !== studentIdValue)
-        : [...prev, studentIdValue];
+      const current = prev ?? prefilledStudentIds;
+      const next = current.includes(studentIdValue)
+        ? current.filter((id) => id !== studentIdValue)
+        : [...current, studentIdValue];
       setValue("studentIds", next, { shouldValidate: true });
       return next;
     });
@@ -155,6 +174,9 @@ export default function CreateBatch() {
   const subjectsForSelect = isEditPage
     ? subjects
     : subjects.filter((subject) => subject.status === "active");
+  const hasSubjectsForBatch = subjectsForSelect.length > 0;
+  const selectedSubjectName = selectedSubject?.name || "this subject";
+  const hasTutorsForSelectedSubject = filteredTutors.length > 0;
   const filteredBatches = batches.filter((batch) => {
     const nameMatch =
       !filters.name ||
@@ -223,10 +245,9 @@ export default function CreateBatch() {
   };
 
   const handleCancelEdit = () => {
-    setEditingBatch(null);
-    setSelectedSubjectId("");
-    setSelectedTeacherId("");
-    setSelectedStudents([]);
+    setSelectedSubjectId(null);
+    setSelectedTeacherId(null);
+    setSelectedStudents(null);
     setValue("studentIds", [], { shouldValidate: false });
     setShowStudentDropdown(false);
     reset();
@@ -236,27 +257,19 @@ export default function CreateBatch() {
   };
 
   useEffect(() => {
-    if (!isEditPage || !batches.length || !subjects.length || !tutors.length) return;
-    const batch = batches.find((item) => item._id === batchId);
-    if (!batch) return;
+    if (!editingBatch) return;
 
-    const prefilledSubjectId =
-      batch.subjectId?._id || batch.subjectId || "";
-    const prefilledTeacherId =
-      batch.teacherId?.tutorId || batch.teacherId?._id || batch.teacherId || "";
-    const prefilledStudentIds = (batch.studentIds || [])
-      .map((student) => student.studentId || student._id || student)
-      .filter(Boolean);
-
-    setEditingBatch(batch);
-    setValue("name", batch.name || "");
-    setSelectedSubjectId(prefilledSubjectId);
-    setSelectedTeacherId(prefilledTeacherId);
-    setSelectedStudents(prefilledStudentIds);
+    setValue("name", editingBatch.name || "");
     setValue("subjectId", prefilledSubjectId, { shouldValidate: true });
     setValue("teacherId", prefilledTeacherId, { shouldValidate: true });
     setValue("studentIds", prefilledStudentIds, { shouldValidate: false });
-  }, [isEditPage, batches, batchId, subjects, tutors, setValue]);
+  }, [
+    editingBatch,
+    prefilledSubjectId,
+    prefilledTeacherId,
+    prefilledStudentIds,
+    setValue,
+  ]);
 
   const handleToggleStatus = async (batch) => {
     const nextStatus = batch.status === "completed" ? "active" : "completed";
@@ -297,6 +310,21 @@ export default function CreateBatch() {
 
             <div>
               <Label>Subject</Label>
+              {!hasSubjectsForBatch && (
+                <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-3">
+                  <p className="text-sm font-medium text-amber-900">
+                    NO SUBJECT IS AVAILABLE
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-3"
+                    onClick={() => navigate("/tenant/add-subject")}
+                  >
+                    Add Subject
+                  </Button>
+                </div>
+              )}
               <Select
                 key={`subject-${editingBatch?._id || "new"}`}
                 value={selectedSubjectId}
@@ -336,6 +364,25 @@ export default function CreateBatch() {
 
             <div>
               <Label>Teacher</Label>
+              {selectedSubjectId && !hasTutorsForSelectedSubject && (
+                <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-3">
+                  <p className="text-sm font-medium text-amber-900">
+                    There is no teacher availble for this subject please add teacher.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-3"
+                    onClick={() =>
+                      navigate("/tenant/tutors/add", {
+                        state: { preselectedSubjectId: selectedSubjectId },
+                      })
+                    }
+                  >
+                    Add Tutor for {selectedSubjectName}
+                  </Button>
+                </div>
+              )}
               <Select
                 key={`teacher-${editingBatch?._id || "new"}-${selectedSubjectId}`}
                 value={selectedTeacherId}
@@ -346,7 +393,7 @@ export default function CreateBatch() {
                 disabled={!selectedSubjectId}
               >
                 <SelectTrigger className="mt-1 w-full">
-                  <SelectValue placeholder="Select teacher" />
+                  <SelectValue placeholder={selectedSubjectId ? "Select teacher" : "Please select subject first"} />
                 </SelectTrigger>
                 <SelectContent>
                   {selectedSubjectId ? (

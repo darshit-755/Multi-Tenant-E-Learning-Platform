@@ -5,8 +5,8 @@ export const loginApi = (data) => {
   return API.post("/auth/login", data);
 };
 
-export const googleLoginApi = (token) => {
-  return API.post("/auth/google-login", { token });
+export const googleLoginApi = (data) => {
+  return API.post("/auth/google-login", data);
 };
 
 export const logoutApi = (data) => {

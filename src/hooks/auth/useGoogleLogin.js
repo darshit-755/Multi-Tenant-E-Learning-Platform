@@ -3,6 +3,6 @@ import { googleLoginApi } from '@/services/auth.api';
 
 export const useGoogleLogin = () => {
   return useMutation({
-    mutationFn: (token) => googleLoginApi(token),
+    mutationFn: (data) => googleLoginApi(data),
   });
 };

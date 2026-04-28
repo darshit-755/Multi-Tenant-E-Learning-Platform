@@ -140,9 +140,9 @@ export const VideoProgressProvider = ({ children }) => {
       const currentVideoPercent = classEntry.videos[videoKey] || 0;
 
       // Only update if the new value is higher (no rewinding decreases)
-      if (percent <= currentVideoPercent) return prev;
+      if (normalizedPercent <= currentVideoPercent) return prev;
 
-      const updatedVideos = { ...classEntry.videos, [videoKey]: percent };
+      const updatedVideos = { ...classEntry.videos, [videoKey]: normalizedPercent };
 
       // Compute max progress across all videos in this class
       const maxProgress = Math.max(...Object.values(updatedVideos));
@@ -212,7 +212,7 @@ export const VideoProgressProvider = ({ children }) => {
         console.error("Failed to persist video progress:", err);
       });
     }
-  }, []);
+  }, [persistProgress]);
 
   /**
    * Get the progress entry for a specific class.

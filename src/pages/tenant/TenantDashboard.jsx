@@ -2,13 +2,15 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGetClasses } from "@/hooks/tenant/useGetClasses";
 import { useGetTutors } from "@/hooks/tenant/useGetTutors";
+import { useGetSubjects } from "@/hooks/tenant/useGetSubjects";
+import { useGetBatches } from "@/hooks/tenant/useGetBatches";
 import { useNavigate } from "react-router-dom";
 
 import { Calendar } from "@/components/ui/calendar";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { BookMarked, GraduationCap, Users } from "lucide-react";
 
 import {
   Table,
@@ -28,6 +30,39 @@ import {
 
 import { formatDateWithDay } from "@/utils/classUtils";
 
+const onboardingSteps = [
+  {
+    key: "subject",
+    icon: BookMarked,
+    title: "Add Subject",
+    desc: "Start by adding the subjects your center offers.",
+    route: "/tenant/add-subject",
+    gradient: "from-violet-500 to-indigo-600",
+    bg: "bg-violet-500/10",
+    border: "border-violet-500/30",
+  },
+  {
+    key: "tutor",
+    icon: GraduationCap,
+    title: "Add Tutor",
+    desc: "Register your tutors so you can assign them to batches.",
+    route: "/tenant/tutors/add",
+    gradient: "from-emerald-500 to-teal-600",
+    bg: "bg-emerald-500/10",
+    border: "border-emerald-500/30",
+  },
+  {
+    key: "batch",
+    icon: Users,
+    title: "Create Batch",
+    desc: "Group students by subject & tutor to organize classes.",
+    route: "/tenant/batches/add",
+    gradient: "from-amber-500 to-orange-600",
+    bg: "bg-amber-500/10",
+    border: "border-amber-500/30",
+  },
+];
+
 const TenantDashboard = () => {
   const { user } = useAuth();
   const { data: classesData } = useGetClasses();
@@ -41,7 +76,21 @@ const TenantDashboard = () => {
 
   const [selectedDate, setSelectedDate] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
-  const [tutorFilter, setTutorFilter] = useState("");
+  const { data: subjectsData } = useGetSubjects();
+  const { data: batchesData } = useGetBatches();
+
+  const subjectCount = (subjectsData?.subjects || []).length;
+  const batchCount = (batchesData?.batches || []).length;
+
+  const tutorCount = (tutorsData?.tutors || []).length;
+
+  // Show onboarding steps based on actual data
+  const remainingSteps = onboardingSteps.filter((step) => {
+    if (step.key === "subject") return subjectCount === 0;
+    if (step.key === "tutor") return tutorCount === 0;
+    if (step.key === "batch") return batchCount === 0;
+    return false;
+  });
 
   // Normalize date (remove time)
   const normalizeDate = (date) =>
@@ -87,13 +136,7 @@ const TenantDashboard = () => {
         new Date(a.date) - new Date(b.date),
     );
   const filteredUpcomingClasses = upcomingClasses;
-  const filteredLatestTutors = latestTutors.filter((tutor) =>
-    !tutorFilter
-      ? true
-      : String(tutor.name || tutor.email || "")
-          .toLowerCase()
-          .includes(tutorFilter.toLowerCase()),
-  );
+ 
 
   // Selected day check
   const selectedDay = selectedDate ? normalizeDate(selectedDate) : null;
@@ -108,6 +151,39 @@ const TenantDashboard = () => {
       <h1 className="text-3xl font-bold capitalize">
         Welcome, {user?.name}
       </h1>
+
+      {/* Onboarding guide cards — based on actual data */}
+      {remainingSteps.length > 0 && (
+        <div>
+          <p className="text-sm text-muted-foreground mb-3">
+            🚀 Get started — {remainingSteps.length} step{remainingSteps.length > 1 ? "s" : ""} remaining:
+          </p>
+          <div className={`grid grid-cols-1 ${remainingSteps.length === 1 ? "sm:grid-cols-1 max-w-sm" : remainingSteps.length === 2 ? "sm:grid-cols-2 max-w-2xl" : "sm:grid-cols-3"} gap-3`}>
+            {remainingSteps.map((step) => {
+              const Icon = step.icon;
+              return (
+                <button
+                  key={step.key}
+                  onClick={() => navigate(step.route)}
+                  className={`flex items-start gap-3 p-4 rounded-xl border ${step.border} ${step.bg} text-left hover:shadow-md transition-all cursor-pointer group`}
+                >
+                  <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${step.gradient} flex items-center justify-center shrink-0 shadow`}>
+                    <Icon size={18} className="text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">
+                      {step.title}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                      {step.desc}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Calendar */}
@@ -229,13 +305,6 @@ const TenantDashboard = () => {
           {isTutorsLoading ? (
             <p className="text-sm text-muted-foreground">Loading tutors...</p>
           ) : (
-            <>
-              <Input
-                placeholder="Filter tutors by name/email"
-                value={tutorFilter}
-                onChange={(e) => setTutorFilter(e.target.value)}
-                className="mb-3"
-              />
             <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -251,8 +320,8 @@ const TenantDashboard = () => {
                 </TableHeader>
 
                 <TableBody>
-                  {filteredLatestTutors.length > 0 ? (
-                    filteredLatestTutors.map((tutor) => (
+                  {latestTutors.length > 0 ? (
+                    latestTutors.map((tutor) => (
                       <TableRow key={tutor._id}>
                         <TableCell>{tutor.name}</TableCell>
                         <TableCell>{tutor.email}</TableCell>
@@ -280,16 +349,13 @@ const TenantDashboard = () => {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center text-sm">
-                        {latestTutors.length === 0
-                          ? "No tutors found"
-                          : "No tutors match the filter"}
+                        No tutors found
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
             </div>
-            </>
           )}
         </CardContent>
       </Card>

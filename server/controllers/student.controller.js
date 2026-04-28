@@ -23,7 +23,8 @@ export const getProfile = async (req, res) => {
             classLevel: studentProfile.classLevel,
             board: studentProfile.board,
             phone: studentProfile.phone,
-            parentName: studentProfile.parentName,
+            fatherName: studentProfile.fatherName,
+            motherName: studentProfile.motherName,
             status: studentProfile.status,
           }
         : null,
@@ -40,7 +41,17 @@ export const getProfile = async (req, res) => {
 export const updateProfile = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { name, email, rollNumber, classLevel, board, phone, parentName, password } = req.body;
+    const {
+      name,
+      email,
+      rollNumber,
+      classLevel,
+      board,
+      phone,
+      fatherName,
+      motherName,
+      password,
+    } = req.body;
 
     const user = await User.findById(userId);
 
@@ -84,7 +95,8 @@ export const updateProfile = async (req, res) => {
 
         studentProfile.phone = phone;
       }
-      if (parentName !== undefined) studentProfile.parentName = parentName;
+      if (fatherName !== undefined) studentProfile.fatherName = fatherName;
+      if (motherName !== undefined) studentProfile.motherName = motherName;
       await studentProfile.save();
     }
 
@@ -102,7 +114,8 @@ export const updateProfile = async (req, res) => {
             classLevel: studentProfile.classLevel,
             board: studentProfile.board,
             phone: studentProfile.phone,
-            parentName: studentProfile.parentName,
+            fatherName: studentProfile.fatherName,
+            motherName: studentProfile.motherName,
             status: studentProfile.status,
           }
         : null,

@@ -375,7 +375,7 @@ const AdminDashboard = () => {
 
                         <TableCell>
                           <span className="px-3 py-1 text-xs rounded-full font-medium bg-yellow-100 text-yellow-800">
-                            {tenant.status}
+                            {tenant.status === "blocked" ? "Suspended" : tenant.status}
                           </span>
                         </TableCell>
 
