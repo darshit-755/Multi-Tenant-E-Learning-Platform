@@ -74,7 +74,7 @@ const StudentAttendance = () => {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total Classes</div>
           <div className="mt-2 text-2xl font-bold text-slate-900">{statistics.totalClasses}</div>
@@ -89,6 +89,13 @@ const StudentAttendance = () => {
           <div className="text-xs font-semibold uppercase tracking-wide text-rose-700">Absent</div>
           <div className="mt-2 text-2xl font-bold text-rose-700">{statistics.absentCount}</div>
         </div>
+
+        {statistics.notMarkedCount > 0 && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <div className="text-xs font-semibold uppercase tracking-wide text-amber-700">Not Marked</div>
+            <div className="mt-2 text-2xl font-bold text-amber-700">{statistics.notMarkedCount}</div>
+          </div>
+        )}
 
         <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
           <div className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Attendance %</div>

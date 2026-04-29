@@ -33,7 +33,7 @@ cron.schedule("* * * * *", async () => {
           await Class.findByIdAndUpdate(
             cls._id,
             { status: "completed" },
-            { new: true }
+            { returnDocument: 'after' }
           );
           console.log(
             ` Class marked as completed: ${cls.topic || cls._id} (ended at ${classEnd.toISOString()})`

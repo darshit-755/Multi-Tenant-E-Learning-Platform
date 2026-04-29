@@ -9,7 +9,7 @@ import {
   trackMeetingAttendance,
   markVideoAttendance,
   getMyVideoProgress,
-  upsertMyVideoProgress,
+  saveVideoProgress,
 } from "../controllers/attendance.controller.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 import { authorizeRoles } from "../middlewares/role.middleware.js";
@@ -49,7 +49,7 @@ router.post(
   "/video-progress",
   authMiddleware,
   authorizeRoles("student"),
-  upsertMyVideoProgress
+  saveVideoProgress
 );
 
 // Get attendance for a class (accessible to tenant, tutor)

@@ -24,7 +24,11 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { redirectByRole } from "@/utils/roleRedirect";
 import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Phone, MapPin } from "lucide-react";
+import {
+  handleIndianMobileInput,
+  validateIndianMobileNumber,
+} from "@/lib/phone";
 
 
 export default function Login() {
@@ -34,6 +38,13 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  // Google phone/address dialog state (shown when new user signs in via Google)
+  const [googleDialogOpen, setGoogleDialogOpen] = useState(false);
+  const [googleCredential, setGoogleCredential] = useState(null);
+  const [googlePhone, setGooglePhone] = useState("");
+  const [googleAddress, setGoogleAddress] = useState("");
+  const [googlePhoneError, setGooglePhoneError] = useState("");
   const { mutate: forgotPassword } = useForgotPassword();
   const {
     register,
@@ -48,12 +59,17 @@ export default function Login() {
   const processGoogleLogin = async (payload) => {
     const response = await googleLoginMutation.mutateAsync(payload);
 
+    // Backend says this is a new user needing phone/address
+    if (response?.data?.needsDetails) {
+      return response;
+    }
+
     if (response?.data?.userStatus === "inactive" || !response?.data?.token) {
       toast.success("Registration successful! Awaiting admin approval.");
       setTimeout(() => {
         navigate("/login");
       }, 2000);
-      return;
+      return response;
     }
 
     login(response?.data?.token, response?.data?.user);
@@ -61,16 +77,57 @@ export default function Login() {
 
     const userRole = response?.data?.user?.role;
     redirectByRole(userRole, navigate);
+    return response;
   };
 
   const handleGoogleLoginSuccess = async (credentialResponse) => {
     try {
       setIsGoogleLoading(true);
-      await processGoogleLogin({ token: credentialResponse.credential });
+      const response = await processGoogleLogin({ token: credentialResponse.credential });
+
+      // Backend says this is a new user that needs phone/address
+      if (response?.data?.needsDetails) {
+        setGoogleCredential(credentialResponse.credential);
+        setGooglePhone("");
+        setGoogleAddress("");
+        setGooglePhoneError("");
+        setGoogleDialogOpen(true);
+        setIsGoogleLoading(false);
+        return;
+      }
     } catch (error) {
       toast.error(error.response?.data?.message || "Google login failed");
     } finally {
       setIsGoogleLoading(false);
+    }
+  };
+
+  // Step 2: User fills phone & address in dialog → complete registration
+  const handleGoogleDialogSubmit = async () => {
+    if (!googlePhone.trim()) {
+      setGooglePhoneError("Phone number is required");
+      return;
+    }
+    const phoneValidation = validateIndianMobileNumber(googlePhone);
+    if (phoneValidation !== true) {
+      setGooglePhoneError(phoneValidation);
+      return;
+    }
+    setGooglePhoneError("");
+
+    try {
+      setIsGoogleLoading(true);
+      setGoogleDialogOpen(false);
+      await processGoogleLogin({
+        token: googleCredential,
+        phone: googlePhone,
+        address: googleAddress || undefined,
+      });
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Google signup failed");
+    } finally {
+      setIsGoogleLoading(false);
+      setGoogleCredential(null);
     }
   };
 
@@ -262,6 +319,88 @@ export default function Login() {
           </div>
 
           <DialogFooter className="">
+            <DialogClose asChild>
+              <Button
+                variant="ghost"
+                className="text-slate-400 hover:text-black w-full"
+              >
+                Cancel
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Google Login – Phone & Address Dialog (shown for new users) */}
+      <Dialog open={googleDialogOpen} onOpenChange={(open) => {
+        setGoogleDialogOpen(open);
+        if (!open) setGoogleCredential(null);
+      }}>
+        <DialogContent className="sm:max-w-md bg-slate-900/95 backdrop-blur border border-slate-800 text-slate-100 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-center">
+              Complete Your Registration
+            </DialogTitle>
+            <DialogDescription className="text-slate-400 text-center text-sm">
+              Please provide your phone number to finish signing up
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-4">
+            {/* Phone Number (required) */}
+            <div className="space-y-2">
+              <Label htmlFor="google-login-phone" className="flex items-center gap-2">
+                <Phone size={14} className="text-slate-400" />
+                Phone Number <span className="text-red-400">*</span>
+              </Label>
+              <Input
+                id="google-login-phone"
+                type="tel"
+                inputMode="numeric"
+                maxLength={10}
+                placeholder="9876543210"
+                value={googlePhone}
+                onChange={(e) => {
+                  const cleaned = e.target.value.replace(/\D/g, "").slice(0, 10);
+                  setGooglePhone(cleaned);
+                  if (googlePhoneError) setGooglePhoneError("");
+                }}
+                className={`bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500
+                  focus-visible:ring-2 focus-visible:ring-slate-500
+                  ${googlePhoneError ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+              />
+              {googlePhoneError && (
+                <p className="text-red-500 text-sm">{googlePhoneError}</p>
+              )}
+            </div>
+
+            {/* Address (optional) */}
+            <div className="space-y-2">
+              <Label htmlFor="google-login-address" className="flex items-center gap-2">
+                <MapPin size={14} className="text-slate-400" />
+                Address <span className="text-slate-500 text-xs font-normal">(optional)</span>
+              </Label>
+              <Input
+                id="google-login-address"
+                type="text"
+                placeholder="Your address"
+                value={googleAddress}
+                onChange={(e) => setGoogleAddress(e.target.value)}
+                className="bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500
+                  focus-visible:ring-2 focus-visible:ring-slate-500"
+              />
+            </div>
+
+            <Button
+              onClick={handleGoogleDialogSubmit}
+              disabled={isGoogleLoading}
+              className="w-full bg-slate-100 mt-2 text-slate-900 hover:bg-slate-200 font-medium transition"
+            >
+              {isGoogleLoading ? "Signing up..." : "Continue"}
+            </Button>
+          </div>
+
+          <DialogFooter>
             <DialogClose asChild>
               <Button
                 variant="ghost"

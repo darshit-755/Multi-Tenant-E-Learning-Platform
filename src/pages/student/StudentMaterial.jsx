@@ -81,6 +81,14 @@ const ClassVideoView = ({ cls, selectedPdf, onBackToVideos }) => {
     [cls?._id, updateProgress]
   );
 
+  const handleVideoEnded = useCallback(
+    (videoKey) => {
+      if (!cls?._id) return;
+      updateProgress(cls._id, videoKey, 100);
+    },
+    [cls?._id, updateProgress]
+  );
+
   const openPdfFullscreen = () => {
     if (!selectedPdf?.url) return;
     const container = pdfPreviewRef.current;
@@ -175,13 +183,13 @@ const ClassVideoView = ({ cls, selectedPdf, onBackToVideos }) => {
                   return (
                     <div
                       key={videoKey}
-                      className={`space-y-1 ${isSingleVideo ? "flex-1 flex flex-col min-h-0" : ""}`}
+                      className={`${isSingleVideo ? "flex-1 flex flex-col min-h-0" : ""}`}
                     >
-                      <p className="text-sm font-medium text-slate-700 flex-shrink-0">
-                        {video.name}
-                      </p>
                       {video.isLink ? (
-                        <div>
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-slate-700 flex-shrink-0">
+                            {video.name}
+                          </p>
                           <a
                             href={video.url}
                             target="_blank"
@@ -202,14 +210,21 @@ const ClassVideoView = ({ cls, selectedPdf, onBackToVideos }) => {
                         </div>
                       ) : (
                         <div className={`${isSingleVideo ? "flex-1 flex flex-col min-h-0" : ""}`}>
-                          <div className={`${isSingleVideo ? "flex-1 min-h-0" : "aspect-video"} rounded-lg overflow-hidden border bg-black`}>
+                          <div className={`relative group ${isSingleVideo ? "flex-1 min-h-0" : "aspect-video"} rounded-lg overflow-hidden border bg-black`}>
                             <video
                               className="h-full w-full"
                               controls
                               src={video.url}
                               preload="metadata"
                               onTimeUpdate={(e) => handleTimeUpdate(videoKey, e)}
+                              onEnded={() => handleVideoEnded(videoKey)}
                             />
+                            <div className="absolute top-0 left-0 right-0 pointer-events-none z-10 bg-gradient-to-b from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400 pt-3 pb-8 px-3">
+                              <span className="inline-flex items-center gap-2 text-sm font-semibold text-white drop-shadow-lg translate-y-1 group-hover:translate-y-0 transition-transform duration-400">
+                                <Play size={14} className="shrink-0 fill-white text-white" />
+                                {video.name}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       )}

@@ -295,8 +295,14 @@ export const googleLogin = async (req, res) => {
     let user = await User.findOne({ email });
 
     if (!user) {
-      // Create new user if doesn't exist – phone & address come from the
-      // Google profile automatically, no extra dialog needed.
+      // New user – if phone was not provided, tell the frontend to collect it
+      if (!phone || !phone.trim()) {
+        return res.status(200).json({
+          needsDetails: true,
+          message: "Phone number is required to complete registration.",
+        });
+      }
+
       user = await User.create({
         name,
         email,

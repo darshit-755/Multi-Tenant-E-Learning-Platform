@@ -54,10 +54,6 @@ const attendanceSchema = new Schema(
       enum: ["manual", "gmeet", "zoom", "video"],
       default: "manual",
     },
-    videoProgress: {
-      type: Schema.Types.Mixed,
-      default: {},
-    },
     videoMaxProgress: {
       type: Number,
       default: 0,
@@ -121,7 +117,7 @@ const attendanceSchema = new Schema(
   { timestamps: true }
 );
 
-// Compound index to ensure one attendance record per student per class
-attendanceSchema.index({ classId: 1, studentId: 1 }, { unique: true });
+// Compound index to ensure one attendance record per student per class per tenant
+attendanceSchema.index({ tenantId: 1, classId: 1, studentId: 1 }, { unique: true });
 
 export const Attendance = model("Attendance", attendanceSchema);

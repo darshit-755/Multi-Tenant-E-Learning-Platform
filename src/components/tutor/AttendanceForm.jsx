@@ -27,13 +27,13 @@ const AttendanceForm = ({
     return [];
   };
 
-  const { control, handleSubmit: onSubmitRHF, watch, setValue } = useForm({
+  const { control, handleSubmit: onSubmitRHF, watch, setValue, reset } = useForm({
     defaultValues: {
       attendanceData: createInitialAttendanceData()
     }
   });
 
-  const { fields, update } = useFieldArray({
+  const { fields } = useFieldArray({
     control,
     name: 'attendanceData'
   });
@@ -41,11 +41,7 @@ const AttendanceForm = ({
   useEffect(() => {
     const newData = createInitialAttendanceData();
     if (newData.length > 0) {
-      newData.forEach((item, index) => {
-        if (fields[index]) {
-          update(index, item);
-        }
-      });
+      reset({ attendanceData: newData });
     }
   }, [students, initialAttendance]);
 
@@ -53,7 +49,7 @@ const AttendanceForm = ({
 
   const handleSelectAll = (isPresent) => {
     attendanceData.forEach((_, index) => {
-      update(index, { ...attendanceData[index], present: isPresent });
+      setValue(`attendanceData.${index}.present`, isPresent);
     });
   };
 
@@ -152,9 +148,7 @@ const AttendanceForm = ({
                               type="checkbox"
                               checked={field.value === true}
                               onChange={(e) => {
-                                const nextValue = e.target.checked ? true : false;
-                                field.onChange(nextValue);
-                                update(index, { ...record, present: nextValue });
+                                field.onChange(e.target.checked ? true : false);
                               }}
                               className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                             />
@@ -166,9 +160,7 @@ const AttendanceForm = ({
                               type="checkbox"
                               checked={field.value === false}
                               onChange={(e) => {
-                                const nextValue = e.target.checked ? false : true;
-                                field.onChange(nextValue);
-                                update(index, { ...record, present: nextValue });
+                                field.onChange(e.target.checked ? false : true);
                               }}
                               className="h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
                             />
@@ -186,10 +178,7 @@ const AttendanceForm = ({
                           type="text"
                           placeholder="Notes (optional)"
                           value={field.value}
-                          onChange={(e) => {
-                            field.onChange(e.target.value);
-                            update(index, { ...record, notes: e.target.value });
-                          }}
+                          onChange={(e) => field.onChange(e.target.value)}
                           className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-slate-500 focus:outline-none"
                         />
                       )}
