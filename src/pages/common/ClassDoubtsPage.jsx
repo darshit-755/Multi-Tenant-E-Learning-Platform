@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,32 +17,45 @@ import {
 import {
   addClassDoubtMessageApi,
   getClassDoubtConversationApi,
+  markDoubtSolvedApi,
 } from "@/services/classDoubt.api";
 import { toast } from "sonner";
 
-const normalizeRole = (role) => (role === "tutor" ? "tutor" : "student");
+const normalizeRole = (role) => {
+  if (role === "tutor") return "tutor";
+  if (role === "tenant") return "tenant";
+  return "student";
+};
 
 const getUserId = (user) => String(user?._id || user?.id || "");
 
 const getMessageSenderId = (message) =>
   String(message?.senderUserId?._id || message?.senderUserId || "");
 
-const getMessageSide = (message, currentUserId) =>
-  currentUserId && getMessageSenderId(message) === currentUserId ? "self" : "other";
+const getMessageSide = (message, currentUserId) => {
+  const senderRole = message?.senderRole;
+  if (senderRole === "tenant") return "center";
+  if (currentUserId && getMessageSenderId(message) === currentUserId)
+    return "self";
+  return "other";
+};
 
 const messageAlignBySide = {
   self: "justify-end",
   other: "justify-start",
+  center: "justify-center",
 };
 
 const messageBubbleBySide = {
   self: "bg-[#d9fdd3] text-slate-900 border-[#b8e2ac] shadow-sm",
   other: "bg-white text-slate-900 border-slate-200 shadow-sm",
+  center: "bg-blue-50 text-blue-900 border-blue-200 shadow-sm",
 };
 
 const messageMetaBySide = {
   self: "text-slate-500",
   other: "text-slate-500",
+  center: "text-blue-500",
 };
 
 const getMessageLabel = (message, side) => {
@@ -56,6 +69,7 @@ export default function ClassDoubtsPage({
   showBackButton = true,
 }) {
   const { classId: classIdFromParams } = useParams();
+  const [searchParams] = useSearchParams();
   const classId = classIdProp || classIdFromParams;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -64,8 +78,19 @@ export default function ClassDoubtsPage({
   const currentUserId = useMemo(() => getUserId(user), [user]);
   const [text, setText] = useState("");
   const [files, setFiles] = useState([]);
+  const [selectedStudentId, setSelectedStudentId] = useState(
+    () => searchParams.get("studentId") || ""
+  );
 
-  const queryKey = useMemo(() => ["class-doubts", classId], [classId]);
+  // For students: studentId is auto-detected on backend, pass nothing
+  const studentIdForApi = currentRole === "student" ? undefined : selectedStudentId || undefined;
+
+  const queryKey = useMemo(
+    () => ["class-doubts", classId, studentIdForApi || "summary"],
+    [classId, studentIdForApi]
+  );
+
+  const canLoadConversation = Boolean(classId);
 
   const {
     data: doubtData,
@@ -75,10 +100,10 @@ export default function ClassDoubtsPage({
   } = useQuery({
     queryKey,
     queryFn: async () => {
-      const { data } = await getClassDoubtConversationApi(classId);
+      const { data } = await getClassDoubtConversationApi(classId, studentIdForApi);
       return data;
     },
-    enabled: Boolean(classId),
+    enabled: canLoadConversation,
     retry: (failureCount, err) => {
       const status = err?.response?.status;
       if (status === 401 || status === 403 || status === 404) return false;
@@ -88,7 +113,7 @@ export default function ClassDoubtsPage({
 
   const addMessageMutation = useMutation({
     mutationFn: async (payload) => {
-      const { data } = await addClassDoubtMessageApi(classId, payload);
+      const { data } = await addClassDoubtMessageApi(classId, payload, studentIdForApi);
       return data;
     },
     onSuccess: () => {
@@ -99,6 +124,25 @@ export default function ClassDoubtsPage({
     },
     onError: (err) => {
       toast.error(err?.response?.data?.message || "Failed to send message");
+    },
+  });
+
+  const markSolvedMutation = useMutation({
+    mutationFn: async () => {
+      // First send a "Doubt Solved" message in conversation
+      const msgPayload = new FormData();
+      msgPayload.append("text", "Doubt Solved");
+      await addClassDoubtMessageApi(classId, msgPayload, studentIdForApi);
+      // Then mark the doubt status as solved
+      const { data } = await markDoubtSolvedApi(classId, studentIdForApi);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+      toast.success("Doubt marked as solved");
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message || "Failed to mark doubt as solved");
     },
   });
 
@@ -160,20 +204,88 @@ export default function ClassDoubtsPage({
   }
 
   const classInfo = doubtData?.classInfo;
+  const threads = (doubtData?.threads || []).filter(
+    (thread) => thread.studentId && thread.studentName && thread.studentName !== "Unknown"
+  );
   const messages = doubtData?.messages || [];
+  const doubtStatus = doubtData?.doubtStatus || "pending";
 
   return (
     <div className="w-full max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-slate-800">
-          {currentRole === "student" ? "Raise Doubt" : "Class Doubts"}
-        </h1>
-        {showBackButton ? (
-          <Button variant="outline" onClick={() => navigate(-1)}>
-            Back
-          </Button>
-        ) : null}
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-800">
+            {currentRole === "student" ? "Raise Doubt" : "Class Doubts"}
+          </h1>
+          {currentRole === "tutor" && selectedStudentId ? (
+            <p className="text-sm text-slate-500">
+              Viewing conversation for selected student.
+            </p>
+          ) : null}
+        </div>
+        <div className="flex items-center gap-2">
+          {currentRole === "tutor" && selectedStudentId ? (
+            <Button variant="outline" onClick={() => setSelectedStudentId("") }>
+              Back to Student Doubts
+            </Button>
+          ) : null}
+          {showBackButton ? (
+            <Button variant="outline" onClick={() => navigate(-1)}>
+              Back
+            </Button>
+          ) : null}
+        </div>
       </div>
+
+      {currentRole === "tutor" && !selectedStudentId ? (
+        <Card>
+          <CardContent className="p-5 space-y-3">
+            
+            {threads.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No student doubts have been raised for this class yet.
+              </p>
+            ) : (
+              <div className="rounded-md border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Student Doubts</TableHead>
+                      <TableHead />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {threads.map((thread) => (
+                      <TableRow
+                        key={thread.studentId}
+                        className="cursor-pointer hover:bg-slate-100"
+                        onClick={() => setSelectedStudentId(thread.studentId)}
+                      >
+                        <TableCell>
+                          <span className="font-bold">{thread.studentName}</span> has raised Doubt on {classInfo?.topic || "this class"} Topic.
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedStudentId(thread.studentId);
+                            }}
+                          >
+                            View
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <>
 
       <Card>
         <CardContent className="p-5 space-y-3">
@@ -299,16 +411,30 @@ export default function ClassDoubtsPage({
               ) : null}
             </div>
 
-            <Button type="submit" disabled={addMessageMutation.isPending}>
-              {addMessageMutation.isPending
-                ? "Sending..."
-                : currentRole === "tutor"
-                ? "Reply"
-                : "Convey Doubt"}
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button type="submit" disabled={addMessageMutation.isPending}>
+                {addMessageMutation.isPending
+                  ? "Sending..."
+                  : currentRole === "tutor"
+                  ? "Reply"
+                  : "Convey Doubt"}
+              </Button>
+              {currentRole === "student" && messages.length > 0 && doubtStatus !== "solved" && (
+                <Button
+                  type="button"
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  disabled={markSolvedMutation.isPending}
+                  onClick={() => markSolvedMutation.mutate()}
+                >
+                  {markSolvedMutation.isPending ? "Solving..." : "Doubt Solved"}
+                </Button>
+              )}
+            </div>
           </form>
         </CardContent>
       </Card>
+      </>
+      )}
     </div>
   );
 }

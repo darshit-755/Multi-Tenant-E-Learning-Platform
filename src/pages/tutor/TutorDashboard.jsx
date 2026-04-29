@@ -291,7 +291,17 @@ const TutorDashboard = () => {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>{Number(cls?.doubtCount) || 0}</TableCell>
+                      <TableCell>
+                        {cls?.doubtStatus === "solved" ? (
+                          <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
+                            ✓ Doubt Solved
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
+                            {Number(cls?.doubtCount) || 0} Pending
+                          </span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <Button
                           size="sm"

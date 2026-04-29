@@ -9,7 +9,7 @@ const doubtMessageSchema = new mongoose.Schema(
     },
     senderRole: {
       type: String,
-      enum: ["student", "tutor"],
+      enum: ["student", "tutor", "tenant"],
       required: true,
     },
     text: {
@@ -37,14 +37,34 @@ const classDoubtSchema = new mongoose.Schema(
       ref: "Tenant",
       required: true,
     },
+    studentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Student",
+      required: true,
+    },
     messages: {
       type: [doubtMessageSchema],
       default: [],
+    },
+    doubtStatus: {
+      type: String,
+      enum: ["pending", "solved"],
+      default: "pending",
+    },
+    updatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    lastSolvedAt: {
+      type: Date,
+      default: null,
     },
   },
   { timestamps: true }
 );
 
-classDoubtSchema.index({ classId: 1, tenantId: 1 }, { unique: true });
+// Changed: unique per class + tenant + student (individual conversations)
+classDoubtSchema.index({ classId: 1, tenantId: 1, studentId: 1 }, { unique: true });
 
 export const ClassDoubt = mongoose.model("ClassDoubt", classDoubtSchema);

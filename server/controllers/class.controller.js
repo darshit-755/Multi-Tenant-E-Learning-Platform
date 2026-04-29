@@ -384,16 +384,75 @@ export const getClassesByTutor = async (req, res) => {
       {
         $project: {
           classId: 1,
-          doubtCount: { $size: "$messages" },
-          lastDoubtAt: { $max: "$messages.createdAt" },
+          doubtStatus: 1,
+          threadDoubtCount: {
+            $size: {
+              $filter: {
+                input: "$messages",
+                as: "msg",
+                cond: {
+                  $and: [
+                    { $eq: ["$$msg.senderRole", "student"] },
+                    { $ne: ["$$msg.text", "Doubt Solved"] },
+                    {
+                      $or: [
+                        { $eq: [{ $ifNull: ["$lastSolvedAt", null] }, null] },
+                        { $gt: ["$$msg.createdAt", "$lastSolvedAt"] },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          lastDoubtAt: {
+            $max: {
+              $map: {
+                input: {
+                  $filter: {
+                    input: "$messages",
+                    as: "msg",
+                    cond: {
+                      $and: [
+                        { $eq: ["$$msg.senderRole", "student"] },
+                        { $ne: ["$$msg.text", "Doubt Solved"] },
+                      ],
+                    },
+                  },
+                },
+                as: "m",
+                in: "$$m.createdAt",
+              },
+            },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "$classId",
+          doubtCount: { $sum: "$threadDoubtCount" },
+          lastDoubtAt: { $max: "$lastDoubtAt" },
+          // Count how many threads have pending status
+          pendingCount: {
+            $sum: { $cond: [{ $eq: ["$doubtStatus", "pending"] }, 1, 0] },
+          },
+          totalThreads: { $sum: 1 },
         },
       },
     ]);
+
     const doubtCountMap = new Map(
-      doubtsByClass.map((item) => [String(item.classId), Number(item.doubtCount) || 0])
+      doubtsByClass.map((item) => [String(item._id), Number(item.doubtCount) || 0])
     );
     const lastDoubtAtMap = new Map(
-      doubtsByClass.map((item) => [String(item.classId), item.lastDoubtAt || null])
+      doubtsByClass.map((item) => [String(item._id), item.lastDoubtAt || null])
+    );
+    const doubtStatusMap = new Map(
+      doubtsByClass.map((item) => [
+        String(item._id),
+        // Show "solved" only if all threads are solved (no pending)
+        item.pendingCount === 0 && item.totalThreads > 0 ? "solved" : "pending",
+      ])
     );
 
     const classesWithAttendance = classes.map((classDoc) => ({
@@ -402,6 +461,7 @@ export const getClassesByTutor = async (req, res) => {
       doubtCount: doubtCountMap.get(String(classDoc._id)) || 0,
       lastDoubtAt: lastDoubtAtMap.get(String(classDoc._id)) || null,
       hasDoubts: (doubtCountMap.get(String(classDoc._id)) || 0) > 0,
+      doubtStatus: doubtStatusMap.get(String(classDoc._id)) || "pending",
     }));
 
     return res.status(200).json({

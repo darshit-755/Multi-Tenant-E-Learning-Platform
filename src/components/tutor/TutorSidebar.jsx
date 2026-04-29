@@ -1,9 +1,20 @@
 import { Link, useLocation } from "react-router-dom";
+import { useMemo } from "react";
 import { LayoutDashboard, BookOpen, Users, BarChart3, MessageCircleQuestion, NotebookPen } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useGetMyClasses } from "@/hooks/tutor/useGetMyClasses";
 
 const TutorSidebarContent = () => {
   const location = useLocation();
+  const { data: classesData } = useGetMyClasses();
+
+  const totalDoubtCount = useMemo(() => {
+    const classes = classesData?.classes || [];
+    return classes.reduce(
+      (sum, cls) => sum + (Number(cls?.doubtCount) || 0),
+      0
+    );
+  }, [classesData]);
 
   const basePath = `/tutor`;
 
@@ -96,14 +107,21 @@ const TutorSidebarContent = () => {
       <Link
         to={`${basePath}/doubts`}
         className={cn(
-          "flex items-center gap-2 px-3 py-2 rounded-md transition-colors",
+          "flex items-center justify-between gap-2 px-3 py-2 rounded-md transition-colors",
           "text-slate-300 hover:bg-slate-800 hover:text-white",
           location.pathname === `${basePath}/doubts` &&
           "bg-slate-800 text-white"
         )}
       >
-        <MessageCircleQuestion size={18} />
-        Doubts
+        <span className="flex items-center gap-2">
+          <MessageCircleQuestion size={18} />
+          Doubts
+        </span>
+        {totalDoubtCount > 0 && (
+          <span className="inline-flex items-center justify-center rounded-full bg-slate-700 px-2 py-0.5 text-[11px] font-semibold text-slate-100">
+            {totalDoubtCount}
+          </span>
+        )}
       </Link>
 
        <Link

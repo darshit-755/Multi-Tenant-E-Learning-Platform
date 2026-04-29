@@ -30,6 +30,9 @@ const AdminSidebarContent = () => {
       >
         <LayoutDashboard size={18} />
         Dashboard
+         <span className="ml-auto min-w-6 rounded-full bg-amber-500/20 px-2 py-0.5 text-center text-xs font-semibold text-amber-300">
+          {inactiveTenantsCount}
+        </span>
       </Link>
 
       <Link
@@ -43,9 +46,7 @@ const AdminSidebarContent = () => {
       >
         <ClipboardList size={18} />
         Centers
-        <span className="ml-auto min-w-6 rounded-full bg-amber-500/20 px-2 py-0.5 text-center text-xs font-semibold text-amber-300">
-          {inactiveTenantsCount}
-        </span>
+       
       </Link>
 
       <Link

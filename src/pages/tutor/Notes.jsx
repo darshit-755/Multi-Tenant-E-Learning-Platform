@@ -268,6 +268,7 @@ export default function TutorNotesPage() {
                       <TableHead className="font-medium">Subject</TableHead>
                       <TableHead className="font-medium">Batch</TableHead>
                       <TableHead className="font-medium">Schedule</TableHead>
+                      <TableHead className="font-medium">Class Status</TableHead>
                       <TableHead className="text-right font-medium">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -305,24 +306,50 @@ export default function TutorNotesPage() {
                           </div>
                         </TableCell>
                         <TableCell>
+                          {(() => {
+                            const status = String(cls.status || "").trim().toLowerCase();
+                            const isCompleted = status === "completed";
+                            const isCancelled = status === "cancelled";
+                            return (
+                              <span
+                                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
+                                  isCompleted
+                                    ? "bg-blue-100 text-blue-800"
+                                    : isCancelled
+                                      ? "bg-red-100 text-red-700"
+                                      : "bg-green-100 text-green-800"
+                                }`}
+                              >
+                                {isCompleted ? "Completed" : isCancelled ? "Cancelled" : "Scheduled"}
+                              </span>
+                            );
+                          })()}
+                        </TableCell>
+                        <TableCell>
                           <div className="flex items-center justify-end gap-2">
-                            <Button
-                              size="sm"
-                              className="h-8 gap-1.5"
-                              onClick={() => openAddDialog(cls, "note")}
-                            >
-                              <Plus className="h-3.5 w-3.5" />
-                              Add Material
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 gap-1.5"
-                              onClick={() => openViewDialog(cls)}
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                              View
-                            </Button>
+                            {String(cls.status || "").trim().toLowerCase() === "completed" ? (
+                              <>
+                                <Button
+                                  size="sm"
+                                  className="h-8 gap-1.5"
+                                  onClick={() => openAddDialog(cls, "note")}
+                                >
+                                  <Plus className="h-3.5 w-3.5" />
+                                  Add Material
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 gap-1.5"
+                                  onClick={() => openViewDialog(cls)}
+                                >
+                                  <Eye className="h-3.5 w-3.5" />
+                                  View Material
+                                </Button>
+                              </>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Available after class is completed</span>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>

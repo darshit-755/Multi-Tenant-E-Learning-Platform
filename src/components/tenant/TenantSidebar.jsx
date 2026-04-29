@@ -8,6 +8,7 @@ import {
   BookMarked,
   Users,
   ChevronDown,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -156,6 +157,19 @@ const TenantSidebarContent = () => {
       >
         <BookMarked size={18} />
         Attendance Reports
+      </Link>
+
+      <Link
+        to={`${basePath}/doubts`}
+        className={cn(
+          "flex items-center gap-2 px-3 py-2 rounded-md transition-colors",
+          "text-slate-300 hover:bg-slate-800 hover:text-white",
+          location.pathname === `${basePath}/doubts` &&
+            "bg-slate-800 text-white"
+        )}
+      >
+        <MessageSquare size={18} />
+        Doubts
       </Link>
 
     </nav>

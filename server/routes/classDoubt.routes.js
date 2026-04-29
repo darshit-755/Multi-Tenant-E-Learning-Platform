@@ -5,6 +5,7 @@ import { upload } from "../configs/multer.js";
 import {
   addClassDoubtMessage,
   getClassDoubtConversation,
+  markDoubtSolved,
 } from "../controllers/classDoubt.controller.js";
 
 const router = express.Router();
@@ -12,16 +13,23 @@ const router = express.Router();
 router.get(
   "/:classId",
   authMiddleware,
-  authorizeRoles("student", "tutor"),
+  authorizeRoles("student", "tutor", "tenant"),
   getClassDoubtConversation
 );
 
 router.post(
   "/:classId/messages",
   authMiddleware,
-  authorizeRoles("student", "tutor"),
+  authorizeRoles("student", "tutor", "tenant"),
   upload.array("screenshots", 5),
   addClassDoubtMessage
+);
+
+router.patch(
+  "/:classId/solved",
+  authMiddleware,
+  authorizeRoles("student", "tenant"),
+  markDoubtSolved
 );
 
 export default router;

@@ -347,7 +347,11 @@ export default function DoubtsHubPage({ role = "student" }) {
                       </TableCell>
                       {role === "tutor" && (
                         <TableCell>
-                          {doubtCount > 0 ? (
+                          {cls?.doubtStatus === "solved" ? (
+                            <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
+                              ✓ Doubt Solved
+                            </span>
+                          ) : doubtCount > 0 ? (
                             <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
                               {doubtCount} New Doubt{doubtCount > 1 ? "s" : ""}
                             </span>
