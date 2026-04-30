@@ -10,13 +10,7 @@ const StudentLayout = () => {
 
   return (
     <VideoProgressProvider>
-      <div
-        className={
-          isMaterialRoute
-            ? "h-screen flex flex-col bg-slate-950 overflow-hidden"
-            : "min-h-screen flex flex-col bg-slate-950"
-        }
-      >
+      <div className="h-screen flex flex-col bg-slate-950 overflow-hidden">
        
         <StudentHeader />
 

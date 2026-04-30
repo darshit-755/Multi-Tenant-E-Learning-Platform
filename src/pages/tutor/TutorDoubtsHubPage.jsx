@@ -21,10 +21,10 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { getTutorClassesApi } from "@/services/class.api";
-import { getStudentClassesApi } from "@/services/student.api";
 
-export default function DoubtsHubPage({ role = "student" }) {
+export default function TutorDoubtsHubPage() {
   const navigate = useNavigate();
+  const role = "tutor";
   const ALL_VALUE = "__all";
   const [filters, setFilters] = useState({
     topic: "",
@@ -37,14 +37,13 @@ export default function DoubtsHubPage({ role = "student" }) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["doubt-classes", role],
     queryFn: async () => {
-      const response =
-        role === "tutor" ? await getTutorClassesApi() : await getStudentClassesApi();
+      const response = await getTutorClassesApi();
       return response.data;
     },
   });
 
   const classes = useMemo(() => data?.classes || [], [data]);
-  const basePath = role === "tutor" ? "/tutor" : "/student";
+  const basePath = "/tutor";
   const normalizeStatus = (status) => String(status || "").trim().toLowerCase();
 
   const uniqueSubjects = [
@@ -117,15 +116,13 @@ export default function DoubtsHubPage({ role = "student" }) {
   });
 
   const sortedClasses = useMemo(() => {
-    if (role !== "tutor") return filteredClasses;
-
     return [...filteredClasses].sort((a, b) => {
       const aCount = Number(a?.doubtCount) || 0;
       const bCount = Number(b?.doubtCount) || 0;
       if (bCount !== aCount) return bCount - aCount;
       return 0;
     });
-  }, [filteredClasses, role]);
+  }, [filteredClasses]);
 
   const resetFilters = () => {
     setFilters({
@@ -306,7 +303,7 @@ export default function DoubtsHubPage({ role = "student" }) {
                   <TableHead>Batch</TableHead>
                   <TableHead>Schedule</TableHead>
                   <TableHead>Status</TableHead>
-                  {role === "tutor" && <TableHead>Doubts</TableHead>}
+                  <TableHead>Doubts</TableHead>
                   <TableHead>Action</TableHead>
                 </TableRow>
               </TableHeader>
@@ -345,37 +342,35 @@ export default function DoubtsHubPage({ role = "student" }) {
                           {isCompleted ? "Completed" : isCancelled ? "Cancelled" : "Scheduled"}
                         </span>
                       </TableCell>
-                      {role === "tutor" && (
-                        <TableCell>
-                          {cls?.doubtStatus === "solved" ? (
-                            <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
-                              ✓ Doubt Solved
-                            </span>
-                          ) : doubtCount > 0 ? (
-                            <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
-                              {doubtCount} New Doubt{doubtCount > 1 ? "s" : ""}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-                              No Doubts
-                            </span>
-                          )}
-                        </TableCell>
-                      )}
+                      <TableCell>
+                        {cls?.doubtStatus === "solved" ? (
+                          <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
+                            ✓ Doubt Solved
+                          </span>
+                        ) : doubtCount > 0 ? (
+                          <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
+                            {doubtCount} New Doubt{doubtCount > 1 ? "s" : ""}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                            No Doubts
+                          </span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => navigate(`${basePath}/class-doubts/${cls._id}`)}
                         >
-                          {role === "student" ? "Raise Doubt" : "View Doubts"}
+                          View Doubts
                         </Button>
                       </TableCell>
                     </TableRow>
                   );
                 }) : (
                   <TableRow>
-                    <TableCell colSpan={role === "tutor" ? 7 : 6} className="text-center text-sm">
+                    <TableCell colSpan={7} className="text-center text-sm">
                       No classes match the current filters
                     </TableCell>
                   </TableRow>

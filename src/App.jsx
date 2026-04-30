@@ -49,8 +49,10 @@ import StudentBatches from "@/pages/student/StudentBatches";
 import StudentMaterial from "@/pages/student/StudentMaterial";
 import StudentAttendancePage from "@/pages/student/StudentAttendancePage";
 import StudentNotesPage from "@/pages/student/StudentNotes";
-import ClassDoubtsPage from "@/pages/common/ClassDoubtsPage";
-import DoubtsHubPage from "@/pages/common/DoubtsHubPage";
+import TutorDoubtsHubPage from "@/pages/tutor/TutorDoubtsHubPage";
+import TutorClassDoubtsPage from "@/pages/tutor/TutorClassDoubtsPage";
+import StudentDoubtsHubPage from "@/pages/student/StudentDoubtsHubPage";
+import StudentClassDoubtsPage from "@/pages/student/StudentClassDoubtsPage";
 
 import Register from "@/pages/auth/Register";
 import Login from "@/pages/auth/Login";
@@ -129,8 +131,8 @@ function App() {
             <Route path="/tutor/attendance-report" element={<TutorAttendanceReport />} />
             <Route path="/tutor/notes" element={<TutorNotesPage />} />
             <Route path="/tutor/view-material" element={<Navigate to="/tutor/notes" replace />} />
-            <Route path="/tutor/doubts" element={<DoubtsHubPage role="tutor" />} />
-            <Route path="/tutor/class-doubts/:classId" element={<ClassDoubtsPage role="tutor" />} />
+            <Route path="/tutor/doubts" element={<TutorDoubtsHubPage />} />
+            <Route path="/tutor/class-doubts/:classId" element={<TutorClassDoubtsPage />} />
             <Route path="/tutor/profile" element={<TutorProfile />} />
           </Route>
         </Route>
@@ -148,8 +150,8 @@ function App() {
             <Route path="/student/material/:batchId/:classId" element={<StudentMaterial />} />
             <Route path="/student/attendance" element={<StudentAttendancePage />} />
             <Route path="/student/notes" element={<StudentNotesPage />} />
-            <Route path="/student/doubts" element={<DoubtsHubPage role="student" />} />
-            <Route path="/student/class-doubts/:classId" element={<ClassDoubtsPage role="student" />} />
+            <Route path="/student/doubts" element={<StudentDoubtsHubPage />} />
+            <Route path="/student/class-doubts/:classId" element={<StudentClassDoubtsPage />} />
             <Route path="/student/profile" element={<StudentProfile />} />
           </Route>
         </Route>

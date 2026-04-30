@@ -178,7 +178,7 @@ const TenantSidebarContent = () => {
 
 const TenantSidebar = () => {
   return (
-    <aside className="hidden lg:block w-64 bg-slate-900 text-white p-4">
+    <aside className="hidden lg:block w-64 bg-slate-900 text-white p-4 overflow-y-auto">
       <TenantSidebarContent />
     </aside>
   );

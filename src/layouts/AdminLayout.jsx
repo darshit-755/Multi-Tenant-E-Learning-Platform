@@ -5,12 +5,12 @@ import AdminHeader from "@/components/admin/AdminHeader";
 
 const AdminLayout = () => {
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950">
+    <div className="h-screen flex flex-col bg-slate-950 overflow-hidden">
      
       <AdminHeader />
 
       
-      <div className="flex flex-1">
+      <div className="flex flex-1 min-h-0">
 
         <AdminSidebar />
 
