@@ -25,12 +25,20 @@ dbConnect();
 import "./services/reminderJob.js"
 import "./services/classCompletionJob.js"
 
+const isProduction = process.env.NODE_ENV === "production";
 
 const app = express();
-app.use(cors({
-    origin : "http://localhost:5173"
 
-}))
+// --- CORS Configuration ---
+const allowedOrigins = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(",").map(o => o.trim())
+    : ["http://localhost:5173"];
+
+app.use(cors({
+    origin: allowedOrigins,
+    credentials: true
+}));
+
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Backward compatibility for legacy image paths stored as /uploads/<filename>
@@ -55,16 +63,12 @@ app.get("/uploads/:filename", (req, res, next) => {
 });
 
 
-
 const Port = process.env.PORT || 4000
-
-app.get('/',(req,res)=>{
-    res.end("Hello")
-})
 
 app.use(express.json());
 app.use(express.urlencoded({extended : true}))
 
+// --- API Routes ---
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/tenant", tenantRoutes);
@@ -76,6 +80,21 @@ app.use("/api/attendance", attendanceRoutes);
 app.use("/api/class-doubts", classDoubtRoutes);
 app.use("/api/class-notes", classNoteRoutes);
 
+// --- Serve Frontend in Production ---
+if (isProduction) {
+    const clientDistPath = path.join(__dirname, "..", "dist");
+    app.use(express.static(clientDistPath));
+
+    // All non-API, non-upload routes serve the React SPA
+    app.get("*", (req, res) => {
+        res.sendFile(path.join(clientDistPath, "index.html"));
+    });
+} else {
+    app.get("/", (req, res) => {
+        res.json({ message: "API is running", environment: "development" });
+    });
+}
+
 app.listen(Port , ()=>{
-    console.log(`Server is running on port ${Port}`)
+    console.log(`Server is running in ${isProduction ? "production" : "development"} mode on port ${Port}`)
 })
