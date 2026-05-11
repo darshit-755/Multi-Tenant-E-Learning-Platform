@@ -80,20 +80,10 @@ app.use("/api/attendance", attendanceRoutes);
 app.use("/api/class-doubts", classDoubtRoutes);
 app.use("/api/class-notes", classNoteRoutes);
 
-// --- Serve Frontend in Production ---
-if (isProduction) {
-    const clientDistPath = path.join(__dirname, "..", "dist");
-    app.use(express.static(clientDistPath));
-
-    // All non-API, non-upload routes serve the React SPA
-    app.get("*", (req, res) => {
-        res.sendFile(path.join(clientDistPath, "index.html"));
-    });
-} else {
-    app.get("/", (req, res) => {
-        res.json({ message: "API is running", environment: "development" });
-    });
-}
+// --- Health Check ---
+app.get("/", (req, res) => {
+    res.json({ message: "API is running", environment: isProduction ? "production" : "development" });
+});
 
 app.listen(Port , ()=>{
     console.log(`Server is running in ${isProduction ? "production" : "development"} mode on port ${Port}`)
